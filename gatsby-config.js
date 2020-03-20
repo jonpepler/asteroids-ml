@@ -1,5 +1,5 @@
 module.exports = {
-  pathPrefix: "/asteroids-ml",
+  pathPrefix: `/asteroids-ml`,
   siteMetadata: {
     title: `asteroids-ml`,
     description: `A machine learning algorithm that plays Asteroids.`,
