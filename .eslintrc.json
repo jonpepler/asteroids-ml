@@ -1,0 +1,20 @@
+{
+  "env": {
+    "commonjs": true,
+    "es6": true
+  },
+  "rules": {
+    "class-methods-use-this": "off",
+    "import/no-unresolved": "off",
+    "comma-dangle": ["error", "never"],
+    "react/jsx-uses-vars": 2
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:react/recommended",
+    "standard",
+    "gatsby-standard"
+  ],
+  "ignorePatterns": ["public/", "node_modules/", ".cache"]
+
+}
