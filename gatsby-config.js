@@ -1,11 +1,12 @@
 module.exports = {
+  pathPrefix: "/asteroids-ml",
   siteMetadata: {
-    title: `Gatsby Default Starter`,
-    description: `Kick off your next, great Gatsby project with this default starter. This barebones starter ships with the main Gatsby configuration files you might need.`,
-    author: `@gatsbyjs`,
+    title: `asteroids-ml`,
+    description: `A machine learning algorithm that plays Asteroids.`,
+    author: `Jon Pepler`,
   },
   plugins: [
-    `gatsby-plugin-react-helmet`,
+    `gatsby-plugin-react-helmet-async`,
     {
       resolve: `gatsby-source-filesystem`,
       options: {
@@ -29,6 +30,6 @@ module.exports = {
     },
     // this (optional) plugin enables Progressive Web App + Offline functionality
     // To learn more, visit: https://gatsby.dev/offline
-    // `gatsby-plugin-offline`,
+    `gatsby-plugin-offline`,
   ],
 }
