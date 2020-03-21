@@ -7,13 +7,16 @@
     "class-methods-use-this": "off",
     "import/no-unresolved": "off",
     "comma-dangle": ["error", "never"],
-    "react/jsx-uses-vars": 2
+    "react/jsx-uses-vars": 2,
+    "react/jsx-pascal-case": [2, { "allowAllCaps": true }]
   },
   "extends": [
+    "react-app",
     "eslint:recommended",
     "plugin:react/recommended",
     "standard",
-    "gatsby-standard"
+    "gatsby-standard",
+    "standard-react"
   ],
   "ignorePatterns": ["public/", "node_modules/", ".cache"]
 
