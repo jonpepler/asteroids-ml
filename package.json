@@ -2,7 +2,7 @@
   "name": "asteroids-ml",
   "private": true,
   "description": "A machine learning algorithm that plays Asteroids.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "Jon Pepler",
   "dependencies": {
     "gatsby": "^2.19.45",
