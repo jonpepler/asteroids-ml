@@ -13,7 +13,7 @@ const Settings = () => {
     <Layout>
       <SEO title='settings' />
       <h1>settings</h1>
-      <ColourPicker colour={colour} handleChangeColour={setColour}/>
+      <ColourPicker colour={colour} handleChangeColour={setColour} />
       <Link to='/'>go back to training</Link>
     </Layout>
   )

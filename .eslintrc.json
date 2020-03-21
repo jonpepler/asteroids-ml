@@ -7,8 +7,8 @@
         "plugin:react/recommended",
         "standard",
         "react-app",
-        "eslint:recommended",
-        "gatsby-standard"
+        "standard-react",
+        "eslint:recommended"
     ],
     "globals": {
         "Atomics": "readonly",
@@ -25,6 +25,7 @@
         "react"
     ],
     "rules": {
+        "react/jsx-pascal-case": [2, { "allowAllCaps": true }]
     },
     "ignorePatterns": ["public/", "node_modules/", ".cache"]
 }
