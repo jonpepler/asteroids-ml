@@ -1,29 +1,30 @@
 {
-  "env": {
-    "commonjs": true,
-    "es6": true
-  },
-  "rules": {
-    "class-methods-use-this": "off",
-    "import/no-unresolved": "off",
-    "comma-dangle": ["error", "never"],
-    "react/jsx-uses-vars": 2,
-    "react/jsx-pascal-case": [2, { "allowAllCaps": true }],
-    "quotes": [2, "single"]
-  },
-  "extends": [
-    "react-app",
-    "standard",
-    "standard-react",
-    "eslint:recommended",
-    "plugin:react/recommended",
-    "gatsby-standard"
-  ],
-  "ignorePatterns": ["public/", "node_modules/", ".cache"],
-  "settings": {
-    "react": {
-      "version": "16.12.0"
-    }
-  }
-
+    "env": {
+        "browser": true,
+        "es6": true
+    },
+    "extends": [
+        "plugin:react/recommended",
+        "standard",
+        "react-app",
+        "eslint:recommended",
+        "gatsby-standard"
+    ],
+    "globals": {
+        "Atomics": "readonly",
+        "SharedArrayBuffer": "readonly"
+    },
+    "parserOptions": {
+        "ecmaFeatures": {
+            "jsx": true
+        },
+        "ecmaVersion": 2018,
+        "sourceType": "module"
+    },
+    "plugins": [
+        "react"
+    ],
+    "rules": {
+    },
+    "ignorePatterns": ["public/", "node_modules/", ".cache"]
 }

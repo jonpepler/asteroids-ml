@@ -6,7 +6,6 @@ module.exports = {
     author: 'Jon Pepler'
   },
   plugins: [
-    'gatsby-plugin-eslint',
     'gatsby-plugin-react-helmet-async',
     {
       resolve: 'gatsby-source-filesystem',
