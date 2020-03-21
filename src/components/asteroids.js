@@ -1,5 +1,5 @@
 import React from 'react'
-import Sketch from 'react-p5'
+import {loadableSketch as Sketch} from './loadable-react-p5'
 
 import { get } from '../services/storage'
 
