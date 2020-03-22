@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.3.0](https://github.com/jonpepler/asteroids-ml/compare/v1.2.1...v1.3.0) (2020-03-22)
+
+
+### Features
+
+* 🎸 Show a ship in the game window ([15aaef8](https://github.com/jonpepler/asteroids-ml/commit/15aaef8897d796e1334c141a8794d2d51ffdb28a))
+* 🎸 Show spinning basic asteroids ([e2b9bd0](https://github.com/jonpepler/asteroids-ml/commit/e2b9bd06d1d125f6d7cd0270efe59cf4b80f333c))
+* 🎸 Store target game size in defaults ([d0fb637](https://github.com/jonpepler/asteroids-ml/commit/d0fb6377e22087237a2e0ad4520f8946182881f4))
+
 ### [1.2.1](https://github.com/jonpepler/asteroids-ml/compare/v1.2.0...v1.2.1) (2020-03-22)
 
 ## [1.2.0](https://github.com/jonpepler/asteroids-ml/compare/v1.1.0...v1.2.0) (2020-03-21)
