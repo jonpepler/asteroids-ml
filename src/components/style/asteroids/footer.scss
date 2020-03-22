@@ -1,0 +1,24 @@
+@import '../theme';
+$padding: 15px;
+
+.astro-footer {
+  display: flex;
+  flex-direction: row;
+  position: absolute;
+  width: calc(100% - #{$padding} * 2);
+  padding: 0 $padding;
+  bottom: 5px;
+
+  a, footer {
+    color: $asteroids-secondary-text-colour;
+  }
+
+  a:hover {
+    color: $asteroids-primary-text-colour;
+  }
+
+}
+
+.astro-footer__project-info {
+  margin-left: auto;
+}

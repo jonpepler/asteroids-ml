@@ -1,0 +1,41 @@
+@import url('https://fonts.googleapis.com/css?family=Open+Sans|Roboto&display=swap');
+
+$primary-text-colour: #d6d6d6;
+$secondary-text-colour: #808080;
+$asteroids-primary-text-colour: #d6d6d6;
+$asteroids-secondary-text-colour: #808080;
+$highlight-text-colour: #fff;
+
+$background-colour: #1d1d1d;
+$secondary-background-colour: #333333;
+
+$box-shadow-dark-colour: #0a0a0a;
+
+@mixin font {
+  font-family: 'Open Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
+}
+$font-size-small: 14px;
+
+body {
+  margin: 0;
+  height: 100vh;
+  background-color: $background-colour;
+}
+
+h1, h2, h3, h4, h5, h6,
+a,
+p {
+  @include font;
+  color: $primary-text-colour;
+}
+
+footer {
+  @include font;
+  font-size: $font-size-small;
+  color: $secondary-text-colour;
+
+  a {
+    text-decoration: none;
+  }
+}

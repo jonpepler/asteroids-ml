@@ -1,0 +1,19 @@
+@import 'theme';
+
+header {
+  padding: 20px 0;
+  background-color: $secondary-background-colour;
+  box-shadow: $box-shadow-dark-colour 0px 1px 8px 0px;
+
+  a {
+    text-decoration: none;
+
+    &:hover {
+      color: $highlight-text-colour;
+    }
+  }
+
+  h1 {
+    margin: 0;
+  }
+}

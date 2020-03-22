@@ -2,12 +2,16 @@ import React, { useRef } from 'react'
 import { loadableSketch as Sketch } from './loadable-react-p5'
 import { useStateWithLocalStorage } from './hooks/use-state-with-storage'
 
+import AstroFooter from '../components/asteroids/footer'
+
+import './style/asteroids.scss'
+
 const Asteroids = () => {
   const targetSize = {
-    w: 1920,
-    h: 1080
+    w: 1680,
+    h: 1050
   }
-  const containerName = '.asteroid-container'
+  const containerName = 'asteroid-container'
   const containerEl = useRef(null)
   const defaultFill = 0
   const defaultBackground = 0
@@ -67,6 +71,7 @@ const Asteroids = () => {
         draw={draw}
         windowResized={windowResized}
       />
+      <AstroFooter />
     </div>
   )
 }
