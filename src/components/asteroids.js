@@ -1,13 +1,15 @@
-import React, { useRef, useState } from 'react'
+import React, { useRef, useEffect } from 'react'
 import { loadableSketch as Sketch } from './loadable-react-p5'
 import { useStateWithLocalStorage } from './hooks/use-state-with-storage'
 
 import AstroFooter from '../components/asteroids/footer'
 
 import Ship from '../components/asteroids/objects/ship'
+import AsteroidGenerator from '../components/asteroids/util/asteroid-generator'
 
 import './style/asteroids.scss'
 
+const drawables = [new Ship(825, 525)]
 const Asteroids = () => {
   const containerName = 'asteroid-container'
   const containerEl = useRef(null)
@@ -15,7 +17,10 @@ const Asteroids = () => {
   const defaultBackground = 0
   const [circleColour] = useStateWithLocalStorage('circleColour')
   const [targetSize] = useStateWithLocalStorage('targetSize')
-  const [drawables] = useState([new Ship(825, 525)])
+
+  // don't return anything to useEffect
+  // eslint-disable-next-line no-void
+  useEffect(() => void (drawables.push(...AsteroidGenerator.makeAsteroids(targetSize))), [])
 
   const getWidth = () => (containerEl.current && containerEl.current.offsetWidth) || 0
   const getHeight = () => (containerEl.current && containerEl.current.offsetHeight) || 0
@@ -32,6 +37,7 @@ const Asteroids = () => {
     setScale(p5)
     p5.background(defaultBackground)
     drawables.forEach(element => {
+      element.applyDelta()
       element.draw(p5)
     })
     p5.fill(p5.color(circleColour))
