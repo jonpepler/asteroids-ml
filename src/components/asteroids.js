@@ -7,15 +7,12 @@ import AstroFooter from '../components/asteroids/footer'
 import './style/asteroids.scss'
 
 const Asteroids = () => {
-  const targetSize = {
-    w: 1680,
-    h: 1050
-  }
   const containerName = 'asteroid-container'
   const containerEl = useRef(null)
   const defaultFill = 0
   const defaultBackground = 0
   const [circleColour] = useStateWithLocalStorage('circleColour')
+  const [targetSize] = useStateWithLocalStorage('targetSize')
 
   const getWidth = () => containerEl.current.offsetWidth || 0
   const getHeight = () => containerEl.current.offsetHeight || 0
