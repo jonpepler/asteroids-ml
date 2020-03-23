@@ -10,7 +10,7 @@ import AsteroidGenerator from '../components/asteroids/util/asteroid-generator'
 import './style/asteroids.scss'
 
 const ship = new Ship(825, 525)
-let asteroids = []
+const asteroids = []
 let bullets = []
 const pressedKeys = []
 const Asteroids = () => {
@@ -46,7 +46,16 @@ const Asteroids = () => {
     // checkCollisions([ship], bullets)
     checkCollisions([ship], asteroids)
     bullets = bullets.filter(obj => !obj.old)
-    asteroids = asteroids.filter(obj => !obj.old)
+    const newAsteroids = []
+    const asteroidsToSplice = []
+    asteroids.forEach((obj, i) => {
+      if (obj.old) {
+        newAsteroids.push(...obj.spawnChildren())
+        asteroidsToSplice.push(i)
+      }
+    })
+    asteroidsToSplice.forEach(index => asteroids.splice(index, 1))
+    asteroids.push(...newAsteroids)
     resetFill(p5)
   }
 

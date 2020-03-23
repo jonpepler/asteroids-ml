@@ -18,6 +18,7 @@ export const getDirectionVector = degrees => {
   const dy = Math.sin(normalised(asRadians(degrees)))
   return [dx, dy]
 }
+
 // adapted from https://github.com/tmpvar/polygon.js/issues/12
 export const polygonsIntersect = (a, b) => {
   const aPoints = a.toArray()

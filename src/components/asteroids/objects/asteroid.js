@@ -1,12 +1,21 @@
 import AstroObject from '../astro-object'
 
-const size = 200
+const minSize = 50
 class Asteroid extends AstroObject {
   constructor (x, y) {
     super(x, y, 0)
-      .withSize(Math.random() * (1 / 2 * size) + size / 2)
-      .withShape(Asteroid.randomShape())
+    this.size = 200
+  }
+
+  withRandom () {
+    return this
+      .withSize(Math.random() * (1 / 2 * this.size) + this.size / 2)
+      .withRandomShape()
       .withDelta(Asteroid.randomDelta())
+  }
+
+  withRandomShape () {
+    return this.withShape(Asteroid.randomShape())
   }
 
   static randomShape () {
@@ -27,8 +36,25 @@ class Asteroid extends AstroObject {
   }
 
   static randomDelta () {
-    const random = () => Math.random() * 2 - 1
+    const random = () => Math.random() * 4 - 2
     return { x: random(), y: random(), r: random() }
+  }
+
+  spawnChildren () {
+    const newSize = this.size * 2 / 3
+    if (newSize < minSize) return []
+    const newAsteroid = (delta) => new Asteroid(this.x, this.y).withSize(newSize).withRandomShape().withDelta(delta)
+
+    // get current x,y delta
+    const newRotation = { r: this.d.r * 4 / 3 }
+    const delta1 = { x: this.d.x * Math.cos(45), y: this.d.y * Math.sin(45) }
+    const delta2 = { x: this.d.x, y: this.d.y }
+    const delta3 = { x: this.d.x * Math.cos(-45), y: this.d.y * Math.sin(-45) }
+    return [
+      newAsteroid({ ...newRotation, ...delta1 }),
+      newAsteroid({ ...newRotation, ...delta2 }),
+      newAsteroid({ ...newRotation, ...delta3 })
+    ]
   }
 }
 
