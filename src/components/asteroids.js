@@ -17,7 +17,6 @@ const Asteroids = () => {
   const containerEl = useRef(null)
   const defaultFill = 255
   const defaultBackground = 0
-  const [circleColour] = useStateWithLocalStorage('circleColour')
   const [targetSize] = useStateWithLocalStorage('targetSize')
 
   // don't return anything to useEffect
@@ -43,8 +42,6 @@ const Asteroids = () => {
       element.applyDelta(targetSize.w, targetSize.h)
       element.draw(p5)
     })
-    p5.fill(p5.color(circleColour))
-    p5.circle(200, 150, 50)
     resetFill(p5)
   }
 
