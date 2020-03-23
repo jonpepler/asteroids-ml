@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.5.1](https://github.com/jonpepler/asteroids-ml/compare/v1.5.0...v1.5.1) (2020-03-23)
+
+
+### Bug Fixes
+
+* 🐛 Stop objects suddenly appearing on screen edge ([a22ea08](https://github.com/jonpepler/asteroids-ml/commit/a22ea082ce488e28574f2ed30bb1cf44d76f86f8))
+
 ## [1.5.0](https://github.com/jonpepler/asteroids-ml/compare/v1.4.0...v1.5.0) (2020-03-23)
 
 
