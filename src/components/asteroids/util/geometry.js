@@ -6,3 +6,13 @@ export const sumVectors = (a, b) => {
   }
   return res
 }
+
+export const asRadians = a => a * Math.PI / 180
+
+export const getDirectionVector = degrees => {
+  // We know the hypotenuse is 1
+  const normalised = a => a - Math.PI / 2
+  const dx = Math.cos(normalised(asRadians(degrees)))
+  const dy = Math.sin(normalised(asRadians(degrees)))
+  return [dx, dy]
+}

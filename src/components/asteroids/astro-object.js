@@ -5,7 +5,7 @@ class AstroObject {
     this.x = x
     this.y = y
     this.r = r || 0
-    this.d = d || {}
+    this.d = d || { x: 0, y: 0, r: 0 }
     this.shape = []
     this.size = 1
   }
@@ -15,7 +15,7 @@ class AstroObject {
   withDelta (delta) { this.d = delta; return this }
 
   addDelta (newDelta) {
-    this.d = sumVectors(this.d || {}, newDelta)
+    this.d = sumVectors(this.d, newDelta)
   }
 
   drawPreShape (p5) {}
@@ -48,19 +48,28 @@ class AstroObject {
   }
 
   drawShape (p5, shape) {
-    p5.beginShape()
-    shape.forEach(point => {
-      p5.vertex(...point)
-    })
-    p5.endShape(p5.CLOSE)
+    switch (shape) {
+      case AstroObject.SHAPE_CIRCLE:
+        p5.circle(0, 0, this.size)
+        break
+      default:
+        p5.beginShape()
+        shape.forEach(point => {
+          p5.vertex(...point)
+        })
+        p5.endShape(p5.CLOSE)
+    }
   }
 
+  // overridden by temp-object to age objects
+  trackTravel () {}
+
   applyDelta (boundX, boundY) {
-    if (this.d === undefined) return
     const { x, y, r } = this.d
     if (x) this.x += x
     if (y) this.y += y
     if (r) this.r += r
+    this.trackTravel(x, y)
 
     const offset = this.size * 1.25
     if (this.x > boundX + offset) this.x -= boundX + offset * 2
@@ -69,5 +78,7 @@ class AstroObject {
     if (this.y < 0 - offset) this.y += boundY + offset * 2
   }
 }
+
+AstroObject.SHAPE_CIRCLE = 'circle'
 
 export default AstroObject

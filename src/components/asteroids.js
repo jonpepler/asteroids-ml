@@ -11,6 +11,7 @@ import './style/asteroids.scss'
 
 const ship = new Ship(825, 525)
 const drawables = [ship]
+let temporaries = []
 const pressedKeys = []
 const Asteroids = () => {
   const containerName = 'asteroid-container'
@@ -42,6 +43,11 @@ const Asteroids = () => {
       element.applyDelta(targetSize.w, targetSize.h)
       element.draw(p5)
     })
+    temporaries.forEach(element => {
+      element.applyDelta(targetSize.w, targetSize.h)
+      element.draw(p5)
+    })
+    temporaries = temporaries.filter(temp => !temp.old)
     resetFill(p5)
   }
 
@@ -82,6 +88,10 @@ const Asteroids = () => {
   const reportKeysToShip = () => {
     pressedKeys.forEach(key => {
       switch (key) {
+        // Space
+        case 32:
+          temporaries.push(ship.shoot())
+          break
         // ArrowLeft
         case 37:
           ship.arrowLeft()

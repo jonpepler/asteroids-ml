@@ -1,4 +1,6 @@
 import AstroObject from '../astro-object'
+import { getDirectionVector, asRadians } from '../util/geometry'
+import Laser from './laser'
 
 const shape = [[0, -0.5], [0.33, 0.5], [0, 0.33], [-0.33, 0.5]]
 const boosterShape = [[0, 0.33], [-0.02, 0.36], [0, 0.66], [0.02, 0.36]]
@@ -17,18 +19,18 @@ class Ship extends AstroObject {
     }
   }
 
+  getShipTip () {
+    // return [this.x + Math.cos(asRadians(this.r)), this.y + (shape[0][1] + Math.sin(asRadians(this.r))) * size]
+    return [this.x + Math.sin(asRadians(this.r)) * size / 2, this.y + shape[0][1] * Math.cos(asRadians(this.r)) * size]
+  }
+
   arrowLeft () {
     this.r -= rotateSpeed
   }
 
   arrowUp () {
     this.booster = true
-
-    // We know the hypotenuse is 1
-    const normalised = a => a - Math.PI / 2
-    const asRadians = a => a * Math.PI / 180
-    const dx = Math.cos(normalised(asRadians(this.r)))
-    const dy = Math.sin(normalised(asRadians(this.r)))
+    const [dx, dy] = getDirectionVector(this.r)
     this.addDelta({ x: speed * dx, y: speed * dy })
   }
 
@@ -38,6 +40,10 @@ class Ship extends AstroObject {
 
   arrowRight () {
     this.r += rotateSpeed
+  }
+
+  shoot () {
+    return new Laser(...this.getShipTip(), this.d, this.r).withMaxDistance(1000)
   }
 }
 
