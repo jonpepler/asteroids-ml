@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.6.0](https://github.com/jonpepler/asteroids-ml/compare/v1.5.1...v1.6.0) (2020-03-23)
+
+
+### Features
+
+* 🎸 Remove the demo circle ([f10da38](https://github.com/jonpepler/asteroids-ml/commit/f10da38340279ec6597a88801f86ce29b4668c3a))
+
+
+### Bug Fixes
+
+* 🐛 Fetch from db properly on first load ([51001c8](https://github.com/jonpepler/asteroids-ml/commit/51001c8468da26554b09124a03a609032e537cc6))
+
 ### [1.5.1](https://github.com/jonpepler/asteroids-ml/compare/v1.5.0...v1.5.1) (2020-03-23)
 
 
