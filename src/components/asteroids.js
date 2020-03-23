@@ -85,12 +85,19 @@ const Asteroids = () => {
     }
   }
 
+  const fireLimiter = 3
+  let fireCount = 0
   const reportKeysToShip = () => {
     pressedKeys.forEach(key => {
       switch (key) {
         // Space
         case 32:
-          temporaries.push(ship.shoot())
+          if (fireCount > fireLimiter) {
+            temporaries.push(ship.shoot())
+            fireCount = 0
+          } else {
+            fireCount++
+          }
           break
         // ArrowLeft
         case 37:
