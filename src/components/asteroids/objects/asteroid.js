@@ -1,10 +1,10 @@
 import AstroObject from '../astro-object'
 
-const size = 100
+const size = 200
 class Asteroid extends AstroObject {
   constructor (x, y) {
     super(x, y, 0)
-      .withSize(Math.random() * (3 / 4 * size) + size)
+      .withSize(Math.random() * (1 / 2 * size) + size / 2)
       .withShape(Asteroid.randomShape())
       .withDelta(Asteroid.randomDelta())
   }

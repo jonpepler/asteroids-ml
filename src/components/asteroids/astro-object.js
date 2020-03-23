@@ -62,10 +62,11 @@ class AstroObject {
     if (y) this.y += y
     if (r) this.r += r
 
-    if (this.x > boundX + this.size) this.x -= boundX + this.size
-    if (this.y > boundY + this.size) this.y -= boundY + this.size
-    if (this.x < 0 - this.size) this.x += boundX + this.size
-    if (this.y < 0 - this.size) this.y += boundY + this.size
+    const offset = this.size * 1.25
+    if (this.x > boundX + offset) this.x -= boundX + offset * 2
+    if (this.y > boundY + offset) this.y -= boundY + offset * 2
+    if (this.x < 0 - offset) this.x += boundX + offset * 2
+    if (this.y < 0 - offset) this.y += boundY + offset * 2
   }
 }
 
