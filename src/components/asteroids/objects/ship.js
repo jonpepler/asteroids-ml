@@ -6,6 +6,7 @@ const shape = [[0, -0.5], [0.33, 0.5], [0, 0.33], [-0.33, 0.5]]
 const boosterShape = [[0, 0.33], [-0.02, 0.36], [0, 0.66], [0.02, 0.36]]
 const size = 100
 const speed = 0.1
+const laserPushbackSpeed = 0.01
 const rotateSpeed = 3
 class Ship extends AstroObject {
   constructor (x, y) {
@@ -43,7 +44,10 @@ class Ship extends AstroObject {
   }
 
   shoot () {
-    return new Laser(...this.getShipTip(), this.d, this.r).withMaxDistance(1000)
+    const [shipTipX, shipTipY] = this.getShipTip()
+    const [dx, dy] = getDirectionVector(this.r)
+    this.addDelta({ x: -laserPushbackSpeed * dx, y: -laserPushbackSpeed * dy })
+    return new Laser(shipTipX, shipTipY, this.d, this.r).withMaxDistance(1000)
   }
 }
 
