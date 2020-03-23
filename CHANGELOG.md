@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.8.0](https://github.com/jonpepler/asteroids-ml/compare/v1.7.0...v1.8.0) (2020-03-23)
+
+
+### Features
+
+* 🎸 Add an equal and opposite reaction to the ship firing ([2f644ee](https://github.com/jonpepler/asteroids-ml/commit/2f644eef8922b2f353b9b89b05232fb4e0757a04))
+* 🎸 Decrease ship fire rate by 400% ([97053c0](https://github.com/jonpepler/asteroids-ml/commit/97053c01adecceb3334dcb5998d6e35168213006))
+* 🎸 Increase ship gun pushback 0.01 -> 0.02 ([607d539](https://github.com/jonpepler/asteroids-ml/commit/607d539ff95a2f190145a69e0c8408ac40ea69ec))
+* 🎸 Support collisions of bullets and ships with asteroids ([5c93c2c](https://github.com/jonpepler/asteroids-ml/commit/5c93c2c04c716f1d17f238d47dea004334c73538))
+
 ## [1.7.0](https://github.com/jonpepler/asteroids-ml/compare/v1.6.0...v1.7.0) (2020-03-23)
 
 
