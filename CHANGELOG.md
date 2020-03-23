@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.7.0](https://github.com/jonpepler/asteroids-ml/compare/v1.6.0...v1.7.0) (2020-03-23)
+
+
+### Features
+
+* 🎸 Support shooting with the space bar ([5df7fb3](https://github.com/jonpepler/asteroids-ml/commit/5df7fb386e5fd2f661b987222bcc75e1eb04d719))
+
 ## [1.6.0](https://github.com/jonpepler/asteroids-ml/compare/v1.5.1...v1.6.0) (2020-03-23)
 
 
