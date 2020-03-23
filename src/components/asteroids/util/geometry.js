@@ -1,3 +1,5 @@
+import inside from 'point-in-polygon'
+
 export const sumVectors = (a, b) => {
   const res = {
     x: (a.x || 0) + (b.x || 0),
@@ -15,4 +17,8 @@ export const getDirectionVector = degrees => {
   const dx = Math.cos(normalised(asRadians(degrees)))
   const dy = Math.sin(normalised(asRadians(degrees)))
   return [dx, dy]
+}
+// adapted from https://github.com/tmpvar/polygon.js/issues/12
+export const polygonsIntersect = (a, b) => {
+  return a.toArray().some(point => inside(point, b.toArray()))
 }

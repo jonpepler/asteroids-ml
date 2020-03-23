@@ -10,7 +10,7 @@ import AsteroidGenerator from '../components/asteroids/util/asteroid-generator'
 import './style/asteroids.scss'
 
 const ship = new Ship(825, 525)
-const drawables = [ship]
+let drawables = []
 let bullets = []
 const pressedKeys = []
 const Asteroids = () => {
@@ -39,9 +39,14 @@ const Asteroids = () => {
     reportKeysToShip()
     setScale(p5)
     p5.background(defaultBackground)
+    checkCollisions(drawables, bullets)
+    // checkCollisions([ship], bullets)
+    checkCollisions([ship], drawables)
+    updateObjects(p5, [ship])
     updateObjects(p5, drawables)
     updateObjects(p5, bullets)
-    bullets = bullets.filter(temp => !temp.old)
+    bullets = bullets.filter(obj => !obj.old)
+    drawables = drawables.filter(obj => !obj.old)
     resetFill(p5)
   }
 
@@ -49,6 +54,12 @@ const Asteroids = () => {
     objects.forEach(element => {
       element.applyDelta(targetSize.w, targetSize.h)
       element.draw(p5)
+    })
+  }
+
+  const checkCollisions = (objects, hittables) => {
+    objects.forEach(obj => {
+      hittables.forEach(hittable => obj.isHit(hittable))
     })
   }
 

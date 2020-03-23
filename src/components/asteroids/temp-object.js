@@ -1,8 +1,8 @@
 import AstroObject from './astro-object'
 
 class TempObject extends AstroObject {
-  constructor (x, y) {
-    super(x, y)
+  constructor (x, y, r, d) {
+    super(x, y, r, d)
     this.old = false
 
     this.distX = 0

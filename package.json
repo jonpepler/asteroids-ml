@@ -17,6 +17,8 @@
     "gatsby-transformer-sharp": "^2.3.19",
     "idb-keyval": "^3.2.0",
     "node-sass": "^4.13.1",
+    "point-in-polygon": "^1.0.1",
+    "polygon": "^1.0.2",
     "prop-types": "^15.7.2",
     "react": "^16.12.0",
     "react-color": "^2.18.0",

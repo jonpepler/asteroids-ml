@@ -1,4 +1,5 @@
-import { sumVectors } from './util/geometry'
+import { sumVectors, polygonsIntersect, asRadians } from './util/geometry'
+import Polygon from 'polygon'
 
 class AstroObject {
   constructor (x, y, r, d) {
@@ -26,7 +27,6 @@ class AstroObject {
 
     p5.noFill()
     p5.stroke(255)
-
     p5.translate(this.x, this.y)
     p5.angleMode(p5.DEGREES)
     p5.rotate(this.r)
@@ -48,17 +48,11 @@ class AstroObject {
   }
 
   drawShape (p5, shape) {
-    switch (shape) {
-      case AstroObject.SHAPE_CIRCLE:
-        p5.circle(0, 0, this.size)
-        break
-      default:
-        p5.beginShape()
-        shape.forEach(point => {
-          p5.vertex(...point)
-        })
-        p5.endShape(p5.CLOSE)
-    }
+    p5.beginShape()
+    shape.forEach(point => {
+      p5.vertex(...point)
+    })
+    p5.endShape(p5.CLOSE)
   }
 
   // overridden by temp-object to age objects
@@ -77,8 +71,31 @@ class AstroObject {
     if (this.x < 0 - offset) this.x += boundX + offset * 2
     if (this.y < 0 - offset) this.y += boundY + offset * 2
   }
-}
 
-AstroObject.SHAPE_CIRCLE = 'circle'
+  getTransformedPolygon () {
+    return Polygon(this.shape)
+      .translate([this.x, this.y])
+      .scale([this.size, this.size])
+      .rotate(asRadians(this.r))
+  }
+
+  isHit (hittable) {
+    // TODO combine this logic with the transformations in draw
+    const shape = this.getTransformedPolygon()
+    const hShape = hittable.getTransformedPolygon()
+    const hit = polygonsIntersect(shape, hShape)
+    if (hit) {
+      this.hit()
+      hittable.hit()
+    }
+    return hit
+  }
+
+  hit () { this.cleanup() }
+
+  cleanup () {
+    this.old = true
+  }
+}
 
 export default AstroObject

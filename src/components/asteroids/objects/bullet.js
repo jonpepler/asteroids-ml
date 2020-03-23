@@ -1,14 +1,14 @@
 import TempObject from '../temp-object'
-import AstroObject from '../astro-object'
 import { getDirectionVector } from '../util/geometry'
 
-const size = 2
+const shape = [[0, -0.5], [0.25, -0.25], [0.25, 0.5], [-0.25, 0.5], [-0.25, -0.25]]
+const size = 10
 const speed = 10
-class Laser extends TempObject {
+class Bullet extends TempObject {
   constructor (x, y, d, shootDirection) {
-    super(x, y)
+    super(x, y, shootDirection)
       .withSize(size)
-      .withShape(AstroObject.SHAPE_CIRCLE)
+      .withShape(shape)
       .withDelta(d)
 
     // launch vector
@@ -17,4 +17,4 @@ class Laser extends TempObject {
   }
 }
 
-export default Laser
+export default Bullet
