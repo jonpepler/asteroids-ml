@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.5.0](https://github.com/jonpepler/asteroids-ml/compare/v1.4.0...v1.5.0) (2020-03-23)
+
+
+### Features
+
+* 🎸 Improve asteroid shape generation ([4ece9c9](https://github.com/jonpepler/asteroids-ml/commit/4ece9c9040801e1ff83259713f7c25612b1da5ed))
+* 🎸 Make asteroids start with random deltas ([4814ea3](https://github.com/jonpepler/asteroids-ml/commit/4814ea3e70de9f63f2ef6cdbea7bac95d0a13f57))
+* 🎸 Objects leaving the screen come back on the other side ([5ad64d0](https://github.com/jonpepler/asteroids-ml/commit/5ad64d0d162af313facff2fa7e8883a0f3c69004))
+
 ## [1.4.0](https://github.com/jonpepler/asteroids-ml/compare/v1.3.0...v1.4.0) (2020-03-23)
 
 
