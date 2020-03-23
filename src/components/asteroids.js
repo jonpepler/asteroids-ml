@@ -10,7 +10,7 @@ import AsteroidGenerator from '../components/asteroids/util/asteroid-generator'
 import './style/asteroids.scss'
 
 const ship = new Ship(825, 525)
-let drawables = []
+let asteroids = []
 let bullets = []
 const pressedKeys = []
 const Asteroids = () => {
@@ -22,7 +22,7 @@ const Asteroids = () => {
 
   // don't return anything to useEffect
   // eslint-disable-next-line no-void
-  useEffect(() => void (drawables.push(...AsteroidGenerator.makeAsteroids(targetSize))), [])
+  useEffect(() => void (asteroids.push(...AsteroidGenerator.makeAsteroids(targetSize))), [])
 
   const getWidth = () => (containerEl.current && containerEl.current.offsetWidth) || 0
   const getHeight = () => (containerEl.current && containerEl.current.offsetHeight) || 0
@@ -40,13 +40,13 @@ const Asteroids = () => {
     setScale(p5)
     p5.background(defaultBackground)
     updateObjects(p5, [ship])
-    updateObjects(p5, drawables)
+    updateObjects(p5, asteroids)
     updateObjects(p5, bullets)
-    checkCollisions(drawables, bullets)
+    checkCollisions(asteroids, bullets)
     // checkCollisions([ship], bullets)
-    checkCollisions([ship], drawables)
+    checkCollisions([ship], asteroids)
     bullets = bullets.filter(obj => !obj.old)
-    drawables = drawables.filter(obj => !obj.old)
+    asteroids = asteroids.filter(obj => !obj.old)
     resetFill(p5)
   }
 
