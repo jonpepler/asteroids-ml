@@ -11,7 +11,7 @@ import './style/asteroids.scss'
 
 const ship = new Ship(825, 525)
 const drawables = [ship]
-let temporaries = []
+let bullets = []
 const pressedKeys = []
 const Asteroids = () => {
   const containerName = 'asteroid-container'
@@ -39,16 +39,17 @@ const Asteroids = () => {
     reportKeysToShip()
     setScale(p5)
     p5.background(defaultBackground)
-    drawables.forEach(element => {
-      element.applyDelta(targetSize.w, targetSize.h)
-      element.draw(p5)
-    })
-    temporaries.forEach(element => {
-      element.applyDelta(targetSize.w, targetSize.h)
-      element.draw(p5)
-    })
-    temporaries = temporaries.filter(temp => !temp.old)
+    updateObjects(p5, drawables)
+    updateObjects(p5, bullets)
+    bullets = bullets.filter(temp => !temp.old)
     resetFill(p5)
+  }
+
+  const updateObjects = (p5, objects) => {
+    objects.forEach(element => {
+      element.applyDelta(targetSize.w, targetSize.h)
+      element.draw(p5)
+    })
   }
 
   const resetFill = p5 => p5.fill(defaultFill)
@@ -93,7 +94,7 @@ const Asteroids = () => {
         // Space
         case 32:
           if (fireCount > fireLimiter) {
-            temporaries.push(ship.shoot())
+            bullets.push(ship.shoot())
             fireCount = 0
           } else {
             fireCount++
