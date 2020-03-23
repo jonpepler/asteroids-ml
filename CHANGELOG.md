@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.4.0](https://github.com/jonpepler/asteroids-ml/compare/v1.3.0...v1.4.0) (2020-03-23)
+
+
+### Features
+
+* 🎸 Support flying the ship with up, left & right keys ([90b45a5](https://github.com/jonpepler/asteroids-ml/commit/90b45a5a69fdcee84a652d9cda2fc0094732cdf7))
+
 ## [1.3.0](https://github.com/jonpepler/asteroids-ml/compare/v1.2.1...v1.3.0) (2020-03-22)
 
 
