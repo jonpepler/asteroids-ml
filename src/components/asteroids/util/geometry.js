@@ -20,5 +20,7 @@ export const getDirectionVector = degrees => {
 }
 // adapted from https://github.com/tmpvar/polygon.js/issues/12
 export const polygonsIntersect = (a, b) => {
-  return a.toArray().some(point => inside(point, b.toArray()))
+  const aPoints = a.toArray()
+  const bPoints = b.toArray()
+  return aPoints.some(point => inside(point, bPoints)) || bPoints.some(point => inside(point, aPoints))
 }
