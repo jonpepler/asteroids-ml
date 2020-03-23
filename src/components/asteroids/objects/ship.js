@@ -6,7 +6,7 @@ const shape = [[0, -0.5], [0.33, 0.5], [0, 0.33], [-0.33, 0.5]]
 const boosterShape = [[0, 0.33], [-0.02, 0.36], [0, 0.66], [0.02, 0.36]]
 const size = 100
 const speed = 0.1
-const laserPushbackSpeed = 0.01
+const laserPushbackSpeed = 0.02
 const rotateSpeed = 3
 class Ship extends AstroObject {
   constructor (x, y) {
