@@ -1,3 +1,5 @@
+import { sumVectors } from './util/geometry'
+
 class AstroObject {
   constructor (x, y, r, d) {
     this.x = x
@@ -10,7 +12,14 @@ class AstroObject {
 
   withShape (shape) { this.shape = shape; return this }
   withSize (size) { this.size = size; return this }
-  withDelta (delta) { this.delta = delta; return this }
+  withDelta (delta) { this.d = delta; return this }
+
+  addDelta (newDelta) {
+    this.d = sumVectors(this.d || {}, newDelta)
+  }
+
+  drawPreShape (p5) {}
+  drawAfterShape (p5) {}
 
   draw (p5) {
     p5.push()
@@ -25,18 +34,30 @@ class AstroObject {
     // maintain constant stroke width
     p5.strokeWeight(1 / this.size)
 
-    p5.beginShape()
-    this.shape.forEach(point => {
-      p5.vertex(...point)
-    })
-    p5.endShape(p5.CLOSE)
+    p5.push()
+    this.drawPreShape(p5)
+    p5.pop()
+
+    this.drawShape(p5, this.shape)
+
+    p5.push()
+    this.drawAfterShape(p5)
+    p5.pop()
 
     p5.pop()
   }
 
+  drawShape (p5, shape) {
+    p5.beginShape()
+    shape.forEach(point => {
+      p5.vertex(...point)
+    })
+    p5.endShape(p5.CLOSE)
+  }
+
   applyDelta () {
-    if (this.delta === undefined) return
-    const { x, y, r } = this.delta
+    if (this.d === undefined) return
+    const { x, y, r } = this.d
     if (x) this.x += x
     if (y) this.y += y
     if (r) this.r += r

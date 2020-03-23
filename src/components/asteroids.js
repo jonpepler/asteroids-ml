@@ -9,7 +9,9 @@ import AsteroidGenerator from '../components/asteroids/util/asteroid-generator'
 
 import './style/asteroids.scss'
 
-const drawables = [new Ship(825, 525)]
+const ship = new Ship(825, 525)
+const drawables = [ship]
+const pressedKeys = []
 const Asteroids = () => {
   const containerName = 'asteroid-container'
   const containerEl = useRef(null)
@@ -34,6 +36,7 @@ const Asteroids = () => {
   }
 
   const draw = p5 => {
+    reportKeysToShip()
     setScale(p5)
     p5.background(defaultBackground)
     drawables.forEach(element => {
@@ -64,12 +67,48 @@ const Asteroids = () => {
     p5.resizeCanvas(...canvasSize)
   }
 
+  const keyPressed = ({ keyCode }) => {
+    pressedKeys.push(keyCode)
+  }
+
+  const keyReleased = ({ keyCode }) => {
+    const index = pressedKeys.indexOf(keyCode)
+    if (index > -1) pressedKeys.splice(index, 1)
+    switch (keyCode) {
+      // ArrowUp
+      case 38:
+        ship.arrowUpOff()
+        break
+    }
+  }
+
+  const reportKeysToShip = () => {
+    pressedKeys.forEach(key => {
+      switch (key) {
+        // ArrowLeft
+        case 37:
+          ship.arrowLeft()
+          break
+        // ArrowUp
+        case 38:
+          ship.arrowUp()
+          break
+        // ArrowRight
+        case 39:
+          ship.arrowRight()
+          break
+      }
+    })
+  }
+
   return (
     <div className={containerName} ref={containerEl}>
       <Sketch
         setup={setup}
         draw={draw}
         windowResized={windowResized}
+        keyPressed={keyPressed}
+        keyReleased={keyReleased}
       />
       <AstroFooter />
     </div>
