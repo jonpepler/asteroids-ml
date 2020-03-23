@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.8.1](https://github.com/jonpepler/asteroids-ml/compare/v1.8.0...v1.8.1) (2020-03-23)
+
+
+### Bug Fixes
+
+* 🐛 Improve the collision detection ([e64929d](https://github.com/jonpepler/asteroids-ml/commit/e64929dd3b03369f58628d834083378fd6c4aed1))
+
 ## [1.8.0](https://github.com/jonpepler/asteroids-ml/compare/v1.7.0...v1.8.0) (2020-03-23)
 
 
