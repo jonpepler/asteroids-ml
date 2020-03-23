@@ -14,7 +14,8 @@ class Asteroid extends AstroObject {
   }
 
   static randomDelta () {
-    return { x: 0, y: 0, r: 1 }
+    const random = () => Math.random() * 2 - 1
+    return { x: random(), y: random(), r: random() }
   }
 }
 
