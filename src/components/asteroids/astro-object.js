@@ -55,12 +55,17 @@ class AstroObject {
     p5.endShape(p5.CLOSE)
   }
 
-  applyDelta () {
+  applyDelta (boundX, boundY) {
     if (this.d === undefined) return
     const { x, y, r } = this.d
     if (x) this.x += x
     if (y) this.y += y
     if (r) this.r += r
+
+    if (this.x > boundX + this.size) this.x -= boundX + this.size
+    if (this.y > boundY + this.size) this.y -= boundY + this.size
+    if (this.x < 0 - this.size) this.x += boundX + this.size
+    if (this.y < 0 - this.size) this.y += boundY + this.size
   }
 }
 

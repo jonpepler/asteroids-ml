@@ -40,7 +40,7 @@ const Asteroids = () => {
     setScale(p5)
     p5.background(defaultBackground)
     drawables.forEach(element => {
-      element.applyDelta()
+      element.applyDelta(targetSize.w, targetSize.h)
       element.draw(p5)
     })
     p5.fill(p5.color(circleColour))
