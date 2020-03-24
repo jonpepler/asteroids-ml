@@ -2,13 +2,14 @@ import React, { useRef, useState, useEffect } from 'react'
 import { loadableSketch as Sketch } from './loadable-react-p5'
 import { useStateWithLocalStorage } from './hooks/use-state-with-storage'
 
+import AstroBanner from './asteroids/banner'
+import AstroOverlay from './asteroids/overlay'
 import AstroFooter from '../components/asteroids/footer'
 
 import Ship from '../components/asteroids/objects/ship'
 import AsteroidGenerator from '../components/asteroids/util/asteroid-generator'
 
 import './style/asteroids.scss'
-import AstroBanner from './asteroids/banner'
 
 const asteroidKillScore = 10
 const ship = new Ship(825, 525)
@@ -22,6 +23,7 @@ const Asteroids = () => {
   const defaultBackground = 0
   const [targetSize] = useStateWithLocalStorage('targetSize')
   const [score, updateScore] = useState(0)
+  const [won, hasWon] = useState(false)
 
   // don't return anything to useEffect
   // eslint-disable-next-line no-void
@@ -60,6 +62,7 @@ const Asteroids = () => {
     })
     asteroidsToSplice.forEach(index => asteroids.splice(index, 1))
     asteroids.push(...newAsteroids)
+    if (asteroids.length === 0) hasWon(true)
     resetFill(p5)
   }
 
@@ -143,6 +146,7 @@ const Asteroids = () => {
   return (
     <div className={containerName} ref={containerEl}>
       <AstroBanner score={score} />
+      <AstroOverlay won={won} />
       <Sketch
         setup={setup}
         draw={draw}
