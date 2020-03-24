@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.10.0](https://github.com/jonpepler/asteroids-ml/compare/v1.9.0...v1.10.0) (2020-03-24)
+
+
+### Features
+
+* 🎸 Add background scroll effect to give an in-motion feel ([917e607](https://github.com/jonpepler/asteroids-ml/commit/917e607a861debf8bae36468cfd2656bdd0d6cb6))
+
 ## [1.9.0](https://github.com/jonpepler/asteroids-ml/compare/v1.8.1...v1.9.0) (2020-03-24)
 
 
