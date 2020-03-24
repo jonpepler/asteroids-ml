@@ -1,4 +1,5 @@
 import AstroObject from '../astro-object'
+import { asRadians } from './../util/geometry'
 
 const minSize = 50
 class Asteroid extends AstroObject {
@@ -47,9 +48,9 @@ class Asteroid extends AstroObject {
 
     // get current x,y delta
     const newRotation = { r: this.d.r * 4 / 3 }
-    const delta1 = { x: this.d.x * Math.cos(45), y: this.d.y * Math.sin(45) }
+    const delta1 = { x: this.d.x * Math.cos(asRadians(45)), y: this.d.y * Math.sin(asRadians(45)) }
     const delta2 = { x: this.d.x, y: this.d.y }
-    const delta3 = { x: this.d.x * Math.cos(-45), y: this.d.y * Math.sin(-45) }
+    const delta3 = { x: this.d.x * Math.cos(asRadians(-45)), y: this.d.y * Math.sin(asRadians(-45)) }
     return [
       newAsteroid({ ...newRotation, ...delta1 }),
       newAsteroid({ ...newRotation, ...delta2 }),
