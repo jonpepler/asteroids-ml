@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.9.0](https://github.com/jonpepler/asteroids-ml/compare/v1.8.1...v1.9.0) (2020-03-24)
+
+
+### Features
+
+* 🎸 Improve how asteroids break up ([73dff24](https://github.com/jonpepler/asteroids-ml/commit/73dff24b7e0296378a372eed7e2770a84937cfdf))
+* 🎸 Only destroy an asteroid after 4 hits ([960e0e2](https://github.com/jonpepler/asteroids-ml/commit/960e0e2d9c7929e315a482b1ca690ac4733a576b))
+* 🎸 Show a lose screen when the ship crashes ([55fa064](https://github.com/jonpepler/asteroids-ml/commit/55fa0645129cdfb5aef8bce43c3c0ccfede3a630))
+* 🎸 Show a win screen when all asteroids are destroyed ([26864c5](https://github.com/jonpepler/asteroids-ml/commit/26864c5c0bdff1bf9f1a5f491a7144782952f925))
+* 🎸 Show score at the top of the screen ([11ac30a](https://github.com/jonpepler/asteroids-ml/commit/11ac30aed8a66f2247821646356d792b3897711d))
+* 🎸 Spawn new, smaller asteroids when destroyed ([e9c418e](https://github.com/jonpepler/asteroids-ml/commit/e9c418e1ed5ce31e2627f6f290a255b12e2267a8))
+* 🎸 Stop asteroids generating on top of the ship ([cdbc424](https://github.com/jonpepler/asteroids-ml/commit/cdbc4240e36169d54906b30e3d45a2117b79f971))
+
 ### [1.8.1](https://github.com/jonpepler/asteroids-ml/compare/v1.8.0...v1.8.1) (2020-03-23)
 
 
