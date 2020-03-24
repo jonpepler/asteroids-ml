@@ -44,9 +44,7 @@ const Asteroids = () => {
     reportKeysToShip()
     setScale(p5)
     p5.background(defaultBackground)
-    updateObjects(p5, [ship])
-    updateObjects(p5, asteroids)
-    updateObjects(p5, bullets)
+    updateObjects(p5, [ship], asteroids, bullets)
     checkCollisions(asteroids, bullets)
     checkCollisions([ship], bullets)
     checkCollisions([ship], asteroids)
@@ -56,10 +54,12 @@ const Asteroids = () => {
     resetFill(p5)
   }
 
-  const updateObjects = (p5, objects) => {
-    objects.forEach(element => {
-      element.applyDelta(targetSize.w, targetSize.h)
-      element.draw(p5)
+  const updateObjects = (p5, ...objectLists) => {
+    objectLists.forEach(objects => {
+      objects.forEach(element => {
+        element.applyDelta(targetSize.w, targetSize.h)
+        element.draw(p5)
+      })
     })
   }
 
