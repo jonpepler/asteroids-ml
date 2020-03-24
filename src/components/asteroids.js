@@ -48,20 +48,10 @@ const Asteroids = () => {
     updateObjects(p5, asteroids)
     updateObjects(p5, bullets)
     checkCollisions(asteroids, bullets)
-    // checkCollisions([ship], bullets)
+    checkCollisions([ship], bullets)
     checkCollisions([ship], asteroids)
     bullets = bullets.filter(obj => !obj.old)
-    const newAsteroids = []
-    const asteroidsToSplice = []
-    asteroids.forEach((obj, i) => {
-      if (obj.old) {
-        newAsteroids.push(...obj.spawnChildren())
-        asteroidsToSplice.push(i)
-        updateScore(score + asteroidKillScore)
-      }
-    })
-    asteroidsToSplice.forEach(index => asteroids.splice(index, 1))
-    asteroids.push(...newAsteroids)
+    updateAsteroids(asteroids)
     if (asteroids.length === 0) hasWon(true)
     resetFill(p5)
   }
@@ -77,6 +67,20 @@ const Asteroids = () => {
     objects.forEach(obj => {
       hittables.forEach(hittable => obj.isHit(hittable))
     })
+  }
+
+  const updateAsteroids = asteroids => {
+    const newAsteroids = []
+    const asteroidsToSplice = []
+    asteroids.forEach((obj, i) => {
+      if (obj.old) {
+        newAsteroids.push(...obj.spawnChildren())
+        asteroidsToSplice.push(i)
+        updateScore(score + asteroidKillScore)
+      }
+    })
+    asteroidsToSplice.forEach(index => asteroids.splice(index, 1))
+    asteroids.push(...newAsteroids)
   }
 
   const resetFill = p5 => p5.fill(defaultFill)
