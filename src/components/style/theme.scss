@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css?family=Open+Sans|Roboto&display=swap');
+@import url('https://fonts.googleapis.com/css?family=Open+Sans|Press+Start+2P|Roboto+Slab&display=swap');
 
 $primary-text-colour: #d6d6d6;
 $secondary-text-colour: #808080;
@@ -16,6 +17,13 @@ $box-shadow-dark-colour: #0a0a0a;
   font-family: 'Roboto', sans-serif;
 }
 $font-size-small: 14px;
+
+@mixin game-font {
+  font-family: 'Open Sans', sans-serif;
+  font-family: 'Roboto Slab', serif;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 20px;
+}
 
 body {
   margin: 0;

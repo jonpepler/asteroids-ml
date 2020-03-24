@@ -1,0 +1,12 @@
+@import '../theme';
+
+.astro-banner {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  color: $asteroids-primary-text-colour;
+
+  .score {
+    @include game-font;
+  }
+}
