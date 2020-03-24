@@ -23,7 +23,7 @@ const Asteroids = () => {
   const defaultBackground = 0
   const [targetSize] = useStateWithLocalStorage('targetSize')
   const [score, updateScore] = useState(0)
-  const [won, hasWon] = useState(false)
+  const [gameState, updateGameState] = useState(0)
 
   // don't return anything to useEffect
   // eslint-disable-next-line no-void
@@ -50,7 +50,8 @@ const Asteroids = () => {
     checkCollisions([ship], asteroids)
     bullets = bullets.filter(obj => !obj.old)
     updateAsteroids(asteroids)
-    if (asteroids.length === 0) hasWon(true)
+    if (asteroids.length === 0) updateGameState(1)
+    if (ship.old) updateGameState(2)
     resetFill(p5)
   }
 
@@ -76,7 +77,7 @@ const Asteroids = () => {
       if (obj.old) {
         newAsteroids.push(...obj.spawnChildren())
         asteroidsToSplice.push(i)
-        updateScore(score + asteroidKillScore)
+        if (gameState === 0) updateScore(score + asteroidKillScore)
       }
     })
     asteroidsToSplice.forEach(index => asteroids.splice(index, 1))
@@ -146,11 +147,10 @@ const Asteroids = () => {
       }
     })
   }
-
   return (
     <div className={containerName} ref={containerEl}>
       <AstroBanner score={score} />
-      <AstroOverlay won={won} />
+      <AstroOverlay gameState={gameState} />
       <Sketch
         setup={setup}
         draw={draw}

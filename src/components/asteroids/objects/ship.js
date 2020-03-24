@@ -49,6 +49,12 @@ class Ship extends AstroObject {
     this.addDelta({ x: -bulletPushbackSpeed * dx, y: -bulletPushbackSpeed * dy })
     return new Bullet(shipTipX, shipTipY, this.d, this.r).withMaxDistance(1000)
   }
+
+  hit () {
+    this.shape = [[-0.08, -0.1], [0, -0.5], [0.05, -0.42], [0.3, 0.4], [0, 0.25], [-0.12, 0.42]]
+    if (!this.old) this.addDelta({ r: 10 })
+    this.cleanup()
+  }
 }
 
 export default Ship
