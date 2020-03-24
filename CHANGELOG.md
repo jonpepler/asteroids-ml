@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.10.1](https://github.com/jonpepler/asteroids-ml/compare/v1.10.0...v1.10.1) (2020-03-24)
+
+
+### Bug Fixes
+
+* 🐛 Better support scaling (16:10 fixed) ([2df8184](https://github.com/jonpepler/asteroids-ml/commit/2df81844e55045569b899eb295bb23a72997de7e))
+
 ## [1.10.0](https://github.com/jonpepler/asteroids-ml/compare/v1.9.0...v1.10.0) (2020-03-24)
 
 
