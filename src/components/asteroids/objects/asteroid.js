@@ -6,6 +6,9 @@ class Asteroid extends AstroObject {
   constructor (x, y) {
     super(x, y, 0)
     this.size = 200
+
+    this.timesHit = 0
+    this.health = 3
   }
 
   withRandom () {
@@ -56,6 +59,11 @@ class Asteroid extends AstroObject {
       newAsteroid({ ...newRotation, ...delta2 }),
       newAsteroid({ ...newRotation, ...delta3 })
     ]
+  }
+
+  hit () {
+    this.timesHit++
+    if (this.timesHit > this.health) this.cleanup()
   }
 }
 
