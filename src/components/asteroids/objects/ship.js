@@ -32,7 +32,9 @@ class Ship extends AstroObject {
   arrowUp () {
     this.booster = true
     const [dx, dy] = getDirectionVector(this.r)
-    this.addDelta({ x: speed * dx, y: speed * dy })
+    const delta = { x: speed * dx, y: speed * dy }
+    this.addDelta(delta)
+    return delta
   }
 
   arrowUpOff () {

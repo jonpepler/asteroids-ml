@@ -25,7 +25,7 @@ class AstroObject {
   draw (p5) {
     p5.push()
 
-    p5.noFill()
+    p5.fill(0)
     p5.stroke(255)
     p5.translate(this.x, this.y)
     p5.angleMode(p5.DEGREES)

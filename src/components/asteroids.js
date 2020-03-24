@@ -8,6 +8,7 @@ import AstroFooter from '../components/asteroids/footer'
 
 import Ship from '../components/asteroids/objects/ship'
 import AsteroidGenerator from '../components/asteroids/util/asteroid-generator'
+import StarMap from '../components/asteroids/star-map'
 
 import './style/asteroids.scss'
 
@@ -24,10 +25,11 @@ const Asteroids = () => {
   const [targetSize] = useStateWithLocalStorage('targetSize')
   const [score, updateScore] = useState(0)
   const [gameState, updateGameState] = useState(0)
+  const [starMap] = useState(StarMap.generate(targetSize.w, targetSize.h))
 
-  // don't return anything to useEffect
-  // eslint-disable-next-line no-void
-  useEffect(() => void (asteroids.push(...AsteroidGenerator.makeAsteroids(targetSize, ship))), [])
+  useEffect(() => {
+    asteroids.push(...AsteroidGenerator.makeAsteroids(targetSize, ship))
+  }, [])
 
   const getWidth = () => (containerEl.current && containerEl.current.offsetWidth) || 0
   const getHeight = () => (containerEl.current && containerEl.current.offsetHeight) || 0
@@ -44,6 +46,7 @@ const Asteroids = () => {
     reportKeysToShip()
     setScale(p5)
     p5.background(defaultBackground)
+    starMap.draw(p5)
     updateObjects(p5, [ship], asteroids, bullets)
     checkCollisions(asteroids, bullets)
     checkCollisions([ship], bullets)
@@ -138,7 +141,7 @@ const Asteroids = () => {
           break
         // ArrowUp
         case 38:
-          ship.arrowUp()
+          starMap.applyTravelFeel(ship.arrowUp())
           break
         // ArrowRight
         case 39:
