@@ -1,11 +1,16 @@
 class StarMap {
   constructor (starPoints) {
     this.stars = starPoints
+    this.power = 3
   }
 
   static generate (maxX, maxY) {
     const starNum = Math.floor(Math.random() * maxX * maxY / 1400)
-    return new StarMap(Array.from({ length: starNum }).map(star => [Math.random() * (maxX + 100) - 100, Math.random() * (maxY + 100) - 100]))
+    const random = bound => Math.random() * (bound + 100) - 100
+    return new StarMap(
+      Array.from({ length: starNum })
+        .map(star => [random(maxX), random(maxY)])
+    )
   }
 
   draw (p5) {
@@ -17,7 +22,9 @@ class StarMap {
   }
 
   applyTravelFeel (delta) {
-    this.stars = this.stars.map(star => [star[0] - delta.x * 3, star[1] - delta.y * 3])
+    this.stars = this.stars.map(star =>
+      [star[0] - delta.x * this.power, star[1] - delta.y * this.power]
+    )
   }
 }
 
