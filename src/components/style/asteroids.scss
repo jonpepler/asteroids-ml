@@ -1,3 +1,13 @@
 .asteroid-container {
-  position: relative;
+  // max-width and height should be set by js based on targetSize
+  height: 62.5vw; /* height:width ratio = 10/16 = .625  */
+  max-width: 160vh; /* 16/10 = 1.6 */
+
+  width: 100vw; 
+  max-height: 100vh;
+  margin: auto;
+  position: absolute;
+  top:0;bottom:0; /* vertical center */
+  left:0;right:0; /* horizontal center */
 }
+

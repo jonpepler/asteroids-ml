@@ -150,6 +150,7 @@ const Asteroids = () => {
       }
     })
   }
+
   return (
     <div className={containerName} ref={containerEl}>
       <AstroBanner score={score} />
