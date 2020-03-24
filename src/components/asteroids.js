@@ -22,7 +22,7 @@ const Asteroids = () => {
 
   // don't return anything to useEffect
   // eslint-disable-next-line no-void
-  useEffect(() => void (asteroids.push(...AsteroidGenerator.makeAsteroids(targetSize))), [])
+  useEffect(() => void (asteroids.push(...AsteroidGenerator.makeAsteroids(targetSize, ship))), [])
 
   const getWidth = () => (containerEl.current && containerEl.current.offsetWidth) || 0
   const getHeight = () => (containerEl.current && containerEl.current.offsetHeight) || 0

@@ -25,3 +25,7 @@ export const polygonsIntersect = (a, b) => {
   const bPoints = b.toArray()
   return aPoints.some(point => inside(point, bPoints)) || bPoints.some(point => inside(point, aPoints))
 }
+
+export const pointInPolygon = (point, polygon) => {
+  return inside(point, polygon)
+}
