@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.11.0](https://github.com/jonpepler/asteroids-ml/compare/v1.10.1...v1.11.0) (2020-03-25)
+
+
+### Features
+
+* 🎸 Add a chance for stars to twinkle ✨ ([73c29f9](https://github.com/jonpepler/asteroids-ml/commit/73c29f912531c80e1a3be17822e52c2aadad90dc))
+* 🎸 Support playing from /play ([4d71cd8](https://github.com/jonpepler/asteroids-ml/commit/4d71cd8c4c7a5a8561931629af2055a032d06f40))
+
+
+### Bug Fixes
+
+* 🐛 Reduce asteroid bunching ([975d6b8](https://github.com/jonpepler/asteroids-ml/commit/975d6b83b257ec4794a4b83ff766291b423b214e))
+
 ### [1.10.1](https://github.com/jonpepler/asteroids-ml/compare/v1.10.0...v1.10.1) (2020-03-24)
 
 
