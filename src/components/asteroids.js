@@ -14,10 +14,10 @@ import StarMap from '../components/asteroids/star-map'
 import './style/asteroids.scss'
 
 const asteroidKillScore = 10
-const ship = new Ship(825, 525)
-const asteroids = []
-let bullets = []
-const pressedKeys = []
+let ship
+let asteroids
+let bullets
+let pressedKeys
 const Asteroids = (props) => {
   const containerName = 'asteroid-container'
   const containerEl = useRef(null)
@@ -30,9 +30,14 @@ const Asteroids = (props) => {
   const [starMap] = useState(StarMap.generate(targetSize.w, targetSize.h))
   const isPlayMode = props.mode === 'play'
 
-  useEffect(() => {
-    asteroids.push(...AsteroidGenerator.makeAsteroids(targetSize, ship))
-  }, [])
+  const setupGame = () => {
+    ship = new Ship(targetSize.w / 2, targetSize.h / 2)
+    asteroids = AsteroidGenerator.makeAsteroids(targetSize, ship)
+    bullets = []
+    pressedKeys = []
+  }
+
+  useEffect(() => setupGame(), [])
 
   useEffect(() => {
     if (isPlayMode) updateGameState(0)
