@@ -25,11 +25,16 @@ const Asteroids = (props) => {
   const defaultBackground = 0
   const [targetSize] = useStateWithLocalStorage('targetSize')
   const [score, updateScore] = useState(0)
-  const [gameState, updateGameState] = useState(0)
+  const [gameState, updateGameState] = useState(-1)
   const [starMap] = useState(StarMap.generate(targetSize.w, targetSize.h))
+  const isPlayMode = props.mode === 'play'
 
   useEffect(() => {
     asteroids.push(...AsteroidGenerator.makeAsteroids(targetSize, ship))
+  }, [])
+
+  useEffect(() => {
+    if (isPlayMode) updateGameState(0)
   }, [])
 
   const getWidth = () => (containerEl.current && containerEl.current.offsetWidth) || 0
@@ -46,14 +51,18 @@ const Asteroids = (props) => {
   const draw = p5 => {
     setScale(p5)
     p5.background(defaultBackground)
-    gameLoop()
+    if (gameState !== -1) gameLoop()
     starMap.draw(p5)
     drawObjects(p5, [ship], asteroids, bullets)
     resetFill(p5)
   }
 
+  const getBrainOutput = () => { throw new Error('unimplemented') }
+
+  const getInput = () => isPlayMode ? pressedKeys : getBrainOutput()
+
   const gameLoop = () => {
-    reportKeysToShip()
+    reportKeysToShip(getInput())
     updateObjects([ship], asteroids, bullets)
     checkCollisions(asteroids, bullets)
     checkCollisions([ship], bullets)
@@ -136,8 +145,8 @@ const Asteroids = (props) => {
 
   const fireLimiter = 3
   let fireCount = 0
-  const reportKeysToShip = () => {
-    pressedKeys.forEach(key => {
+  const reportKeysToShip = (keys) => {
+    keys.forEach(key => {
       switch (key) {
         // Space
         case 32:
