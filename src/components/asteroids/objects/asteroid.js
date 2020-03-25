@@ -49,15 +49,17 @@ class Asteroid extends AstroObject {
     if (newSize < minSize) return []
     const newAsteroid = (delta) => new Asteroid(this.x, this.y).withSize(newSize).withRandomShape().withDelta(delta)
 
-    // get current x,y delta
-    const newRotation = { r: this.d.r * 4 / 3 }
-    const delta1 = { x: this.d.x * Math.cos(asRadians(45)), y: this.d.y * Math.sin(asRadians(45)) }
-    const delta2 = { x: this.d.x, y: this.d.y }
-    const delta3 = { x: this.d.x * Math.cos(asRadians(-45)), y: this.d.y * Math.sin(asRadians(-45)) }
+    // keep one child on the same delta, and send the other two at 45 degree angles
+    // slightly increase the rotation speed
+    const newDelta = (x, y, r, a) => ({
+      x: x * Math.cos(asRadians(a)) + y * -Math.sin(asRadians(a)),
+      y: x * Math.sin(asRadians(a)) + y * Math.cos(asRadians(a)),
+      r: r * 4 / 3
+    })
     return [
-      newAsteroid({ ...newRotation, ...delta1 }),
-      newAsteroid({ ...newRotation, ...delta2 }),
-      newAsteroid({ ...newRotation, ...delta3 })
+      newAsteroid(newDelta(this.d.x, this.d.y, this.d.r, 45)),
+      newAsteroid(newDelta(this.d.x, this.d.y, this.d.r, 0)),
+      newAsteroid(newDelta(this.d.x, this.d.y, this.d.r, -45))
     ]
   }
 
