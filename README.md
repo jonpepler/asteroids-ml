@@ -2,7 +2,9 @@
 
 # asteroids-ml
 *(WIP) A machine learning algorithm that plays Asteroids.*
+
 [Play Asteroids](https://jonpepler.github.io/asteroids-ml/play)
+
 [Watch Asteroids play Asteroids (WIP)](https://jonpepler.github.io/asteroids-ml/)
 
 ## development
