@@ -8,7 +8,7 @@ import Asteroids from '../components/asteroids'
 const IndexPage = () => (
   <Theme>
     <SEO title='train' />
-    <Asteroids mode='train' />
+    <Asteroids mode='play' />
   </Theme>
 )
 

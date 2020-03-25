@@ -12,7 +12,10 @@ const Settings = () => {
       <Layout>
         <SEO title='settings' />
         <h1>settings</h1>
-        <Link to='/'>go back to training</Link>
+        <div className='link-block'>
+          <Link to='/'>go back to training</Link>
+          <Link to='/play'>go back to playing</Link>
+        </div>
       </Layout>
     </Theme>
   )

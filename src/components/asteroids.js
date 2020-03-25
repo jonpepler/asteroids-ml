@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react'
+import PropTypes from 'prop-types'
 import { loadableSketch as Sketch } from './loadable-react-p5'
 import { useStateWithLocalStorage } from './hooks/use-state-with-storage'
 
@@ -17,7 +18,7 @@ const ship = new Ship(825, 525)
 const asteroids = []
 let bullets = []
 const pressedKeys = []
-const Asteroids = () => {
+const Asteroids = (props) => {
   const containerName = 'asteroid-container'
   const containerEl = useRef(null)
   const defaultFill = 255
@@ -165,6 +166,10 @@ const Asteroids = () => {
       <AstroFooter />
     </div>
   )
+}
+
+Asteroids.propTypes = {
+  mode: PropTypes.string
 }
 
 export default Asteroids

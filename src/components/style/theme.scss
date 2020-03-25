@@ -49,3 +49,12 @@ footer {
     text-decoration: none;
   }
 }
+
+.link-block {
+  display: flex;
+  flex-direction: column;
+  
+  a {
+    margin: 5px;
+  }
+}
