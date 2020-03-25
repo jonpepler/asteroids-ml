@@ -3,6 +3,12 @@ const defaults = {
   targetSize: {
     w: 1680,
     h: 1050
+  },
+  keyMap: {
+    shoot: 32,
+    rotateLeft: 37,
+    boost: 38,
+    rotateRight: 39
   }
 }
 

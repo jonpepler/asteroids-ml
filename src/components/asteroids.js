@@ -24,6 +24,7 @@ const Asteroids = (props) => {
   const defaultFill = 255
   const defaultBackground = 0
   const [targetSize] = useStateWithLocalStorage('targetSize')
+  const [keyMap] = useStateWithLocalStorage('keyMap')
   const [score, updateScore] = useState(0)
   const [gameState, updateGameState] = useState(-1)
   const [starMap] = useState(StarMap.generate(targetSize.w, targetSize.h))
@@ -149,7 +150,7 @@ const Asteroids = (props) => {
     keys.forEach(key => {
       switch (key) {
         // Space
-        case 32:
+        case keyMap.shoot:
           if (fireCount > fireLimiter) {
             bullets.push(ship.shoot())
             fireCount = 0
@@ -158,15 +159,15 @@ const Asteroids = (props) => {
           }
           break
         // ArrowLeft
-        case 37:
+        case keyMap.rotateLeft:
           ship.arrowLeft()
           break
         // ArrowUp
-        case 38:
+        case keyMap.boost:
           starMap.applyTravelFeel(ship.arrowUp())
           break
         // ArrowRight
-        case 39:
+        case keyMap.rotateRight:
           ship.arrowRight()
           break
       }
