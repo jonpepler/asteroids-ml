@@ -44,11 +44,17 @@ const Asteroids = (props) => {
   }
 
   const draw = p5 => {
-    reportKeysToShip()
     setScale(p5)
     p5.background(defaultBackground)
+    gameLoop()
     starMap.draw(p5)
-    updateObjects(p5, [ship], asteroids, bullets)
+    drawObjects(p5, [ship], asteroids, bullets)
+    resetFill(p5)
+  }
+
+  const gameLoop = () => {
+    reportKeysToShip()
+    updateObjects([ship], asteroids, bullets)
     checkCollisions(asteroids, bullets)
     checkCollisions([ship], bullets)
     checkCollisions([ship], asteroids)
@@ -56,16 +62,22 @@ const Asteroids = (props) => {
     updateAsteroids(asteroids)
     if (asteroids.length === 0) updateGameState(1)
     if (ship.old) updateGameState(2)
-    resetFill(p5)
   }
 
-  const updateObjects = (p5, ...objectLists) => {
+  const effectObjects = (func, ...objectLists) => {
     objectLists.forEach(objects => {
-      objects.forEach(element => {
-        element.applyDelta(targetSize.w, targetSize.h)
-        element.draw(p5)
-      })
+      objects.forEach(func)
     })
+  }
+
+  const updateObjects = (...objectLists) => {
+    effectObjects(element => {
+      element.applyDelta(targetSize.w, targetSize.h)
+    }, ...objectLists)
+  }
+
+  const drawObjects = (p5, ...objectLists) => {
+    effectObjects(element => { element.draw(p5) }, ...objectLists)
   }
 
   const checkCollisions = (objects, hittables) => {
