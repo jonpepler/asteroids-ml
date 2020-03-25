@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.12.0](https://github.com/jonpepler/asteroids-ml/compare/v1.11.0...v1.12.0) (2020-03-25)
+
+
+### Features
+
+* 🎸 Store key mappings in defaults ([05de63c](https://github.com/jonpepler/asteroids-ml/commit/05de63c5a2039dc59479ee27048b9a695135cd75))
+
+
+### Bug Fixes
+
+* 🐛 Stop the game scrolling slightly during gameplay ([c537904](https://github.com/jonpepler/asteroids-ml/commit/c537904c523e9839d57447265b38e3a89df56965))
+
 ## [1.11.0](https://github.com/jonpepler/asteroids-ml/compare/v1.10.1...v1.11.0) (2020-03-25)
 
 
