@@ -25,11 +25,11 @@ class Ship extends AstroObject {
     return [this.x + Math.sin(asRadians(this.r)) * size / 2, this.y + shape[0][1] * Math.cos(asRadians(this.r)) * size]
   }
 
-  arrowLeft () {
+  rotateLeft () {
     this.r -= rotateSpeed
   }
 
-  arrowUp () {
+  moveUp () {
     this.booster = true
     const [dx, dy] = getDirectionVector(this.r)
     const delta = { x: speed * dx, y: speed * dy }
@@ -37,11 +37,11 @@ class Ship extends AstroObject {
     return delta
   }
 
-  arrowUpOff () {
+  moveUpOff () {
     this.booster = false
   }
 
-  arrowRight () {
+  rotateRight () {
     this.r += rotateSpeed
   }
 

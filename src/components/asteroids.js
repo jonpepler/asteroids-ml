@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { loadableSketch as Sketch } from './loadable-react-p5'
 import { useStateWithLocalStorage } from './hooks/use-state-with-storage'
+import { useKeyMapState } from './hooks/use-keymap-state'
 
 import AstroBanner from './asteroids/banner'
 import AstroOverlay from './asteroids/overlay'
@@ -24,7 +25,7 @@ const Asteroids = (props) => {
   const defaultFill = 255
   const defaultBackground = 0
   const [targetSize] = useStateWithLocalStorage('targetSize')
-  const [keyMap] = useStateWithLocalStorage('keyMap')
+  const [keyMap] = useKeyMapState()
   const [score, updateScore] = useState(0)
   const [gameState, updateGameState] = useState(-1)
   const [starMap] = useState(StarMap.generate(targetSize.w, targetSize.h))
@@ -144,7 +145,7 @@ const Asteroids = (props) => {
     switch (keyCode) {
       // ArrowUp
       case 38:
-        ship.arrowUpOff()
+        ship.moveUpOff()
         break
     }
   }
@@ -163,17 +164,14 @@ const Asteroids = (props) => {
             fireCount++
           }
           break
-        // ArrowLeft
         case keyMap.rotateLeft:
-          ship.arrowLeft()
+          ship.rotateLeft()
           break
-        // ArrowUp
         case keyMap.boost:
-          starMap.applyTravelFeel(ship.arrowUp())
+          starMap.applyTravelFeel(ship.moveUp())
           break
-        // ArrowRight
         case keyMap.rotateRight:
-          ship.arrowRight()
+          ship.rotateRight()
           break
       }
     })
