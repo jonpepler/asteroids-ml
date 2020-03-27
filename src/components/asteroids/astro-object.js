@@ -65,11 +65,15 @@ class AstroObject {
     if (r) this.r += r
     this.trackTravel(x, y)
 
-    const offset = this.size * 1.25
+    const offset = this.getOffset()
     if (this.x > boundX + offset) this.x -= boundX + offset * 2
     if (this.y > boundY + offset) this.y -= boundY + offset * 2
     if (this.x < 0 - offset) this.x += boundX + offset * 2
     if (this.y < 0 - offset) this.y += boundY + offset * 2
+  }
+
+  getOffset () {
+    return this.size * 2.5
   }
 
   getTransformedPolygon () {

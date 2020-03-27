@@ -21,8 +21,11 @@ class Ship extends AstroObject {
   }
 
   getShipTip () {
-    // return [this.x + Math.cos(asRadians(this.r)), this.y + (shape[0][1] + Math.sin(asRadians(this.r))) * size]
-    return [this.x + Math.sin(asRadians(this.r)) * size / 2, this.y + shape[0][1] * Math.cos(asRadians(this.r)) * size]
+    return this.getPointOnEdgeOfShip(this.r)
+  }
+
+  getPointOnEdgeOfShip (angle) {
+    return [this.x + Math.sin(asRadians(angle)) * size / 2, this.y + shape[0][1] * Math.cos(asRadians(angle)) * size]
   }
 
   rotateLeft () {
