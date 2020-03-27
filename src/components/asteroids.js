@@ -139,12 +139,12 @@ const Asteroids = (props) => {
         } else {
           if (endPoint[0] < -boundOffset) {
             isNormalLine = false
-            const tboundXUnder = endPoint[0] + boundOffset
-            const tlengthOver = tboundXUnder / angleVector[0]
-            const tyOver = angleVector[1] * tlengthOver
-            const tyUnder = angleVector[1] * (length - tlengthOver)
-            line.push([startPoint, [-boundOffset, startPoint[1] + tyUnder]])
-            line.push([[targetSize.w + boundOffset, startPoint[1] + tyUnder], [targetSize.w + tboundXUnder + boundOffset, startPoint[1] + tyUnder + tyOver]])
+            const boundXUnder = endPoint[0] + boundOffset
+            const lengthOver = boundXUnder / angleVector[0]
+            const yOver = angleVector[1] * lengthOver
+            const yUnder = angleVector[1] * (length - lengthOver)
+            line.push([startPoint, [-boundOffset, startPoint[1] + yUnder]])
+            line.push([[targetSize.w + boundOffset, startPoint[1] + yUnder], [targetSize.w + boundXUnder + boundOffset, startPoint[1] + yUnder + yOver]])
           }
         }
         if (startPoint[1] > targetSize.h + boundOffset) {
