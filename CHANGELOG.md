@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.13.0](https://github.com/jonpepler/asteroids-ml/compare/v1.12.0...v1.13.0) (2020-03-30)
+
+
+### Features
+
+* 🎸 Lay groundwork for training environment ([9708287](https://github.com/jonpepler/asteroids-ml/commit/97082870c40032bfe55b5e64ed1705e59b71a2e1))
+* 🎸 Train ship brains based on asteroid distance input ([105a2f7](https://github.com/jonpepler/asteroids-ml/commit/105a2f7f7434d53eea643405f9f6a0dc90d1cc8d))
+
 ## [1.12.0](https://github.com/jonpepler/asteroids-ml/compare/v1.11.0...v1.12.0) (2020-03-25)
 
 
