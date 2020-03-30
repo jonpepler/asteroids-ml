@@ -5,11 +5,11 @@ import SEO from '../components/seo'
 
 import Asteroids from '../components/asteroids'
 
-const IndexPage = () => (
+const TrainPage = () => (
   <Theme>
     <SEO title='train' />
     <Asteroids mode='train' />
   </Theme>
 )
 
-export default IndexPage
+export default TrainPage

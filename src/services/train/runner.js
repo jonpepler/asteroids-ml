@@ -1,33 +1,48 @@
-import { Neat, methods } from '@liquid-carrot/carrot'
+import { Neat } from '@liquid-carrot/carrot'
 import { getDefault } from '../defaults'
+import { cloneDeep } from 'lodash'
 
 class Runner {
   constructor () {
-    this.neat = new Neat(16, 4)
+    this.neat = new Neat(16, 4, { population_size: 200, elitism: 50 })
     this.currentPopIndex = 0
+    this.initialiseScore()
+    this.generations = []
+  }
+
+  initialiseScore () {
+    this.neat.population = this.neat.population.map(brain => {
+      brain.score = 0
+      return brain
+    })
   }
 
   nextGeneration () {
+    this.saveCurrentGeneration()
+
     this.neat.sort()
     const newGeneration = []
 
     // get the best from the last generation
-    newGeneration.push(...this.neat.population.slice(0, this.neat.elitism - 1))
+    newGeneration.push(...this.neat.population.slice(0, this.neat.elitism))
 
-    // make new offspring
+    // fill out the population with new offspring
     Array.from({ length: this.neat.population_size - this.neat.elitism }, () => {
       newGeneration.push(this.neat.getOffspring())
     })
-
     this.neat.population = newGeneration
 
     // mutate the population randomly
-    this.neat.population = this.neat.population.map(genome =>
-      genome.mutate(methods.mutation.FFW[Math.floor(Math.random() * methods.mutation.FFW.length)])
-    )
+    this.neat.population = this.neat.population.map(genome => genome.mutateRandom())
+
+    this.initialiseScore()
 
     this.neat.generation++
     this.currentPopIndex = 0
+  }
+
+  saveCurrentGeneration () {
+    this.generations.push(cloneDeep(this.neat.population))
   }
 
   nextBrain () {
@@ -41,7 +56,10 @@ class Runner {
   }
 
   getInfo () {
-    return `Generation ${this.neat.generation}, Genome ${this.currentPopIndex}, score ${this.getCurrentBrain().score}`
+    const generation = this.neat.generation.toString().padStart(4, '0')
+    const genome = this.currentPopIndex.toString().padStart(3, '0')
+    const score = this.getCurrentBrain().score.toString().padStart(4, '0')
+    return `Generation ${generation}, Genome ${genome}, score ${score}`
   }
 
   getBrainOutput (input) {

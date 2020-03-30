@@ -1,9 +1,12 @@
 import AstroObject from '../astro-object'
 import { getDirectionVector, asRadians } from '../util/geometry'
 import Bullet from './bullet'
+import Polygon from 'polygon'
+import { cloneDeep } from 'lodash'
 
 const shape = [[0, -0.5], [0.33, 0.5], [0, 0.33], [-0.33, 0.5]]
 const boosterShape = [[0, 0.33], [-0.02, 0.36], [0, 0.66], [0.02, 0.36]]
+const boosterSkew = 0.02
 const size = 100
 const speed = 0.1
 const bulletPushbackSpeed = 0.02
@@ -16,7 +19,19 @@ class Ship extends AstroObject {
 
   drawAfterShape (p5) {
     if (this.booster) {
-      this.drawShape(p5, boosterShape)
+      const [rx, ry] = getDirectionVector(this.r)
+      const skew = shape => {
+        const newShape = cloneDeep(shape)
+        if (this.rotatingLeft) newShape[2][0] = newShape[2][0] - boosterSkew
+        if (this.rotatingRight) newShape[2][0] = newShape[2][0] + boosterSkew
+        return newShape
+      }
+      this.drawShape(p5, Polygon(skew(boosterShape))
+        .translate([this.x, this.y])
+        .translate([rx * -(this.size / 2), ry * -(this.size / 2)])
+        .scale([this.size, this.size])
+        .rotate(asRadians(this.r))
+        .toArray())
     }
   }
 
@@ -30,6 +45,11 @@ class Ship extends AstroObject {
 
   rotateLeft () {
     this.r -= rotateSpeed
+    this.rotatingLeft = true
+  }
+
+  rotateLeftOff () {
+    this.rotatingLeft = false
   }
 
   moveUp () {
@@ -46,13 +66,17 @@ class Ship extends AstroObject {
 
   rotateRight () {
     this.r += rotateSpeed
+    this.rotatingRight = true
+  }
+
+  rotateRightOff () {
+    this.rotatingRight = false
   }
 
   shoot () {
-    const [shipTipX, shipTipY] = this.getShipTip()
     const [dx, dy] = getDirectionVector(this.r)
     this.addDelta({ x: -bulletPushbackSpeed * dx, y: -bulletPushbackSpeed * dy })
-    return new Bullet(shipTipX, shipTipY, this.d, this.r).withMaxDistance(1000)
+    return new Bullet(this, { dx, dy }).withMaxDistance(1000)
   }
 
   hit () {

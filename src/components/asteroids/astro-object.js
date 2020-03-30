@@ -1,4 +1,4 @@
-import { sumVectors, polygonsIntersect, asRadians } from './util/geometry'
+import { sumVectors, polygonsIntersect, asRadians, lineCrossesPolygon } from './util/geometry'
 import Polygon from 'polygon'
 
 class AstroObject {
@@ -27,18 +27,12 @@ class AstroObject {
 
     p5.fill(0)
     p5.stroke(255)
-    p5.translate(this.x, this.y)
-    p5.angleMode(p5.DEGREES)
-    p5.rotate(this.r)
-    p5.scale(this.size)
-    // maintain constant stroke width
-    p5.strokeWeight(1 / this.size)
 
     p5.push()
     this.drawPreShape(p5)
     p5.pop()
 
-    this.drawShape(p5, this.shape)
+    this.drawShape(p5, this.getTransformedPolygon(this.shape).toArray())
 
     p5.push()
     this.drawAfterShape(p5)
@@ -65,6 +59,14 @@ class AstroObject {
     if (r) this.r += r
     this.trackTravel(x, y)
 
+    this.wrap(boundX, boundY)
+  }
+
+  getOffset () {
+    return this.size * 2.5
+  }
+
+  wrap (boundX, boundY) {
     const offset = this.getOffset()
     if (this.x > boundX + offset) this.x -= boundX + offset * 2
     if (this.y > boundY + offset) this.y -= boundY + offset * 2
@@ -72,19 +74,20 @@ class AstroObject {
     if (this.y < 0 - offset) this.y += boundY + offset * 2
   }
 
-  getOffset () {
-    return this.size * 2.5
-  }
-
-  getTransformedPolygon () {
-    return Polygon(this.shape)
-      .translate([this.x, this.y])
+  getTransformedPolygon (shape) {
+    if (shape === undefined) shape = this.shape
+    return Polygon(shape)
       .scale([this.size, this.size])
+      .translate([this.x, this.y])
       .rotate(asRadians(this.r))
   }
 
+  crossedByLine (line) {
+    return lineCrossesPolygon(line, this.getTransformedPolygon())
+      .filter(res => res.length !== 0)
+  }
+
   isHit (hittable) {
-    // TODO combine this logic with the transformations in draw
     const shape = this.getTransformedPolygon()
     const hShape = hittable.getTransformedPolygon()
     const hit = polygonsIntersect(shape, hShape)

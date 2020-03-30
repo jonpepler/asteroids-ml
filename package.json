@@ -17,6 +17,7 @@
     "gatsby-source-filesystem": "^2.1.56",
     "gatsby-transformer-sharp": "^2.3.19",
     "idb-keyval": "^3.2.0",
+    "lodash": "^4.17.15",
     "node-sass": "^4.13.1",
     "point-in-polygon": "^1.0.1",
     "polygon": "^1.0.2",

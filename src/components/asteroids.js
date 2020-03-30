@@ -13,7 +13,7 @@ import AsteroidGenerator from '../components/asteroids/util/asteroid-generator'
 import StarMap from '../components/asteroids/star-map'
 
 import Runner from '../services/train/runner'
-import { getDirectionVector } from './asteroids/util/geometry'
+import { getDirectionVector, closestPoint, distanceBetweenPoints } from './asteroids/util/geometry'
 
 import './style/asteroids.scss'
 
@@ -57,10 +57,8 @@ const Asteroids = (props) => {
   let runner
   let trainingStarted = false
   const startTraining = () => {
-    console.log('new generation!')
     if (!trainingStarted) trainingStarted = true
     runner = new Runner()
-    console.log(runner.getInfo())
   }
 
   const setup = (p5, canvasParentRef) => {
@@ -75,6 +73,7 @@ const Asteroids = (props) => {
     starMap.draw(p5)
     drawObjects(p5, [ship], asteroids, bullets)
     if (isTrainMode) drawSenses(p5)
+    if (isTrainMode) drawGeneticInfo(p5)
     drawTexts(p5)
     resetFill(p5)
   }
@@ -83,7 +82,6 @@ const Asteroids = (props) => {
     if (win) runner.giveScore(100)
     if (!runner.nextBrain()) runner.nextGeneration()
     setupGame()
-    console.log(runner.getInfo())
   }
 
   const testWinGame = () => {
@@ -184,13 +182,43 @@ const Asteroids = (props) => {
     makeWhiskers(whiskers, longLength, 0)
     makeWhiskers(whiskers, shortLength, (360 / whiskers) / 2)
 
-    senses = whiskerPoints
-    // do same for short whiskies
-    // scan along each whisky for objects
-    // on first found item, add a third point inbetween the first two
-    // save the position as a ratio of the length (0 -> 1 where 1 is right next to the ship)
-
-    return Array.from({ length: 16 }).map(x => 0)
+    const arraysWithElementsOnly = arr => arr.length !== 0
+    const sensePoint = sense => {
+      // use old school loop so we can break early
+      for (let i = 0; i < sense.length; i++) {
+        const point = closestPoint(
+          sense[i][0],
+          asteroids
+            .map(a => a.crossedByLine(sense[i])).flat()
+            .filter(arraysWithElementsOnly)
+        )
+        if (point.length !== 0) return { line: i, point }
+      }
+      return false
+    }
+    senses = whiskerPoints.map(sense => {
+      const input = sensePoint(sense)
+      let value = 1
+      if (input) {
+        let length = 0
+        for (let i = 0; i < input.line; i++) {
+          length += distanceBetweenPoints(sense[i][0], sense[i][1])
+        }
+        let fullLength = length
+        length += distanceBetweenPoints(sense[input.line], input.point)
+        for (let i = input.line; i < sense.length; i++) {
+          fullLength += distanceBetweenPoints(sense[i][0], sense[i][1])
+        }
+        value = length / fullLength
+      }
+      return {
+        lines: sense,
+        // record which line part hit an astroid, for logging and display reasons
+        input,
+        value
+      }
+    })
+    return senses.map(sense => sense.value)
   }
 
   const trainingLoop = () => {
@@ -236,10 +264,25 @@ const Asteroids = (props) => {
     p5.stroke(50)
     p5.strokeWeight(2)
     senses.forEach(sense => {
-      sense.forEach(line => {
+      sense.lines.forEach(line => {
         p5.line(...line[0], ...line[1])
       })
+      if (sense.input.point) {
+        p5.push()
+        p5.stroke('red')
+        p5.strokeWeight(5)
+        p5.point(...sense.input.point)
+        p5.pop()
+      }
     })
+    p5.pop()
+  }
+
+  const drawGeneticInfo = p5 => {
+    p5.push()
+    p5.textSize(18)
+    p5.textAlign(p5.CENTER)
+    p5.text(runner.getInfo(), 192, targetSize.h - 40)
     p5.pop()
   }
 
@@ -271,10 +314,7 @@ const Asteroids = (props) => {
         newAsteroids.push(...obj.spawnChildren())
         asteroidsToSplice.push(i)
         if (gameState === 0) {
-          if (isTrainMode) {
-            runner.giveScore(asteroidKillScore)
-            console.log(runner.getInfo())
-          }
+          if (isTrainMode) runner.giveScore(asteroidKillScore)
           score += asteroidKillScore
         }
       }
@@ -311,8 +351,14 @@ const Asteroids = (props) => {
     if (index > -1) pressedKeys.splice(index, 1)
     switch (keyCode) {
       // ArrowUp
-      case 38:
+      case keyMap.boost:
         ship.moveUpOff()
+        break
+      case keyMap.rotateLeft:
+        ship.rotateLeftOff()
+        break
+      case keyMap.rotateRight:
+        ship.rotateRightOff()
         break
     }
   }

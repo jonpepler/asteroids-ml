@@ -5,11 +5,11 @@ import SEO from '../components/seo'
 
 import Asteroids from '../components/asteroids'
 
-const IndexPage = () => (
+const PlayPage = () => (
   <Theme>
-    <SEO title='train' />
+    <SEO title='play' />
     <Asteroids mode='play' />
   </Theme>
 )
 
-export default IndexPage
+export default PlayPage
