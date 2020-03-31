@@ -32,7 +32,7 @@ class Runner {
     this.neat.population = newGeneration
 
     // mutate the population randomly
-    this.neat.population = this.neat.population.map(genome => genome.mutateRandom())
+    this.neat.mutate()
 
     this.initialiseScore()
 
