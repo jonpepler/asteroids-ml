@@ -1,6 +1,5 @@
 import { Neat } from '@liquid-carrot/carrot'
 import { getDefault } from '../defaults'
-import { cloneDeep } from 'lodash'
 
 class Runner {
   constructor () {
@@ -42,7 +41,12 @@ class Runner {
   }
 
   saveCurrentGeneration () {
-    this.generations.push(cloneDeep(this.neat.population))
+    const generation = this.neat.toJSON()
+    // add unsaved properties
+    generation.forEach((g, i) => {
+      generation[i].score = this.neat.population[i].score
+    })
+    this.generations.push(generation)
   }
 
   nextBrain () {
