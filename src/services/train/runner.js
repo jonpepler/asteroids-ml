@@ -63,7 +63,9 @@ class Runner {
     const generation = this.neat.generation.toString().padStart(4, '0')
     const genome = this.currentPopIndex.toString().padStart(3, '0')
     const score = this.getCurrentBrain().score.toString().padStart(4, '0')
-    return `Generation ${generation}, Genome ${genome}, score ${score}`
+    const avg = this.neat.getAverage()
+    const max = this.neat.getFittest().score
+    return `Generation ${generation}, Genome ${genome}, score ${score} (avg: ${avg}, max: ${max})`
   }
 
   getBrainOutput (input) {

@@ -281,8 +281,8 @@ const Asteroids = (props) => {
   const drawGeneticInfo = p5 => {
     p5.push()
     p5.textSize(18)
-    p5.textAlign(p5.CENTER)
-    p5.text(runner.getInfo(), 192, targetSize.h - 40)
+    p5.textAlign(p5.LEFT)
+    p5.text(runner.getInfo(), 28, targetSize.h - 40)
     p5.pop()
   }
 
