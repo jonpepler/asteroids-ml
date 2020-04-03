@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.14.2](https://github.com/jonpepler/asteroids-ml/compare/v1.14.1...v1.14.2) (2020-04-03)
+
+
+### Bug Fixes
+
+* 🐛 Stop some input values being NaN ([87addc4](https://github.com/jonpepler/asteroids-ml/commit/87addc496df5522fcca735f5bb1be64ba5b2da02))
+
 ### [1.14.1](https://github.com/jonpepler/asteroids-ml/compare/v1.14.0...v1.14.1) (2020-04-03)
 
 
