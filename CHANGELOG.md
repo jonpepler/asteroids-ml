@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.14.1](https://github.com/jonpepler/asteroids-ml/compare/v1.14.0...v1.14.1) (2020-04-03)
+
+
+### Bug Fixes
+
+* 🐛 Set population size back to normal (changed for debug) ([81071fb](https://github.com/jonpepler/asteroids-ml/commit/81071fb28e3dce656c3183308950c4d0dfa3245f))
+
 ## [1.14.0](https://github.com/jonpepler/asteroids-ml/compare/v1.13.0...v1.14.0) (2020-04-03)
 
 
