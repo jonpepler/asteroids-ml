@@ -204,15 +204,22 @@ const Asteroids = (props) => {
       return false
     }
     senses = whiskerPoints.map(sense => {
+      // get coords and line index of intersection point
       const input = sensePoint(sense)
       let value = 1
       if (input) {
         let length = 0
+
+        // measure length up to the line with the sense point
         for (let i = 0; i < input.line; i++) {
           length += distanceBetweenPoints(sense[i][0], sense[i][1])
         }
+
         let fullLength = length
-        length += distanceBetweenPoints(sense[input.line], input.point)
+        // add the length of the next line up to the sense point
+        length += distanceBetweenPoints(sense[input.line][0], input.point)
+
+        // measure the rest of the full length of the line (could use whiskerLength)
         for (let i = input.line; i < sense.length; i++) {
           fullLength += distanceBetweenPoints(sense[i][0], sense[i][1])
         }
@@ -225,7 +232,8 @@ const Asteroids = (props) => {
         value
       }
     })
-    return senses.map(sense => sense.value)
+    const out = senses.map(sense => sense.value)
+    return out
   }
 
   const trainingLoop = () => {
