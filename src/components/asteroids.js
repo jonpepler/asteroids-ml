@@ -25,7 +25,9 @@ let starMap
 let senses
 let pressedKeys
 let score = 0
-let gameState = 0
+let gameState = -1
+let runner
+let trainingStarted = false
 const Asteroids = (props) => {
   const containerName = 'asteroid-container'
   const containerEl = useRef(null)
@@ -42,8 +44,20 @@ const Asteroids = (props) => {
     bullets = []
     starMap = StarMap.generate(targetSize.w, targetSize.h)
     pressedKeys = []
+    senses = []
     if (score !== 0) score = 0
-    if (gameState !== 0) gameState = 0
+    if (gameState !== 0) {
+      const start = () => { gameState = 0 }
+      if (isTrainMode && !trainingStarted) {
+        runner = new Runner()
+        runner.init().then(() => {
+          trainingStarted = true
+          start()
+        })
+      } else {
+        start()
+      }
+    }
   }
 
   useEffect(() => setupGame(), [])
@@ -53,13 +67,6 @@ const Asteroids = (props) => {
   const getRelativeWidth = () => getWidth() / targetSize.w
   const getRelativeHeight = () => getHeight() / targetSize.h
   const getRelativeSize = p5 => ({ relativeWidth: getRelativeWidth(), relativeHeight: getRelativeHeight() })
-
-  let runner
-  let trainingStarted = false
-  const startTraining = () => {
-    if (!trainingStarted) trainingStarted = true
-    runner = new Runner()
-  }
 
   const setup = (p5, canvasParentRef) => {
     p5.createCanvas(targetSize.w, targetSize.h).parent(canvasParentRef)
@@ -223,7 +230,6 @@ const Asteroids = (props) => {
 
   const trainingLoop = () => {
     if (isTrainMode) {
-      if (!trainingStarted) startTraining()
       const input = generateBrainInput()
       pressedKeys = runner.getBrainOutput(input)
     }
@@ -279,11 +285,13 @@ const Asteroids = (props) => {
   }
 
   const drawGeneticInfo = p5 => {
-    p5.push()
-    p5.textSize(18)
-    p5.textAlign(p5.LEFT)
-    p5.text(runner.getInfo(), 28, targetSize.h - 40)
-    p5.pop()
+    if (trainingStarted) {
+      p5.push()
+      p5.textSize(18)
+      p5.textAlign(p5.LEFT)
+      p5.text(runner.getInfo(), 28, targetSize.h - 40)
+      p5.pop()
+    }
   }
 
   const drawTexts = p5 => {

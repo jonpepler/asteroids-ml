@@ -1,12 +1,29 @@
 import { Neat } from '@liquid-carrot/carrot'
 import { getDefault } from '../defaults'
+import { get, set } from '../storage'
 
 class Runner {
   constructor () {
-    this.neat = new Neat(16, 4, { population_size: 200, elitism: 50 })
-    this.currentPopIndex = 0
-    this.initialiseScore()
-    this.generations = []
+    this.neat = new Neat(16, 4, { population_size: 2, elitism: 1 })
+    this.storeKey = 'brain_data'
+  }
+
+  async init () {
+    const brainData = await get(this.storeKey)
+    if (brainData) {
+      this.generations = brainData.data
+      const gen = brainData.head.generation
+      this.neat.fromJSON(brainData.data[gen])
+      this.neat.generation = gen
+      this.neat.population.forEach((_, i) => {
+        this.neat.population[i].score = this.generations[gen][i].score
+      })
+      this.currentPopIndex = brainData.head.genome
+    } else {
+      this.currentPopIndex = 0
+      this.initialiseScore()
+      this.generations = []
+    }
   }
 
   initialiseScore () {
@@ -17,8 +34,6 @@ class Runner {
   }
 
   nextGeneration () {
-    this.saveCurrentGeneration()
-
     this.neat.sort()
     const newGeneration = []
 
@@ -46,12 +61,22 @@ class Runner {
     generation.forEach((g, i) => {
       generation[i].score = this.neat.population[i].score
     })
-    this.generations.push(generation)
+
+    this.generations[this.neat.generation] = generation
+    set(this.storeKey, {
+      data: this.generations,
+      head: {
+        generation: this.neat.generation,
+        genome: this.currentPopIndex
+      }
+    })
   }
 
   nextBrain () {
-    this.currentPopIndex++
-    return this.currentPopIndex < this.neat.population.length
+    this.saveCurrentGeneration()
+    const withinPop = this.currentPopIndex < this.neat.population.length - 1
+    if (withinPop) this.currentPopIndex++
+    return withinPop
   }
 
   getCurrentBrain () {
