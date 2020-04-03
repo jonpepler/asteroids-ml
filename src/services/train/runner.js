@@ -4,7 +4,7 @@ import { get, set } from '../storage'
 
 class Runner {
   constructor () {
-    this.neat = new Neat(16, 4, { population_size: 2, elitism: 1 })
+    this.neat = new Neat(16, 4, { population_size: 200, elitism: 50 })
     this.storeKey = 'brain_data'
   }
 
