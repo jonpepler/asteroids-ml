@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.14.0](https://github.com/jonpepler/asteroids-ml/compare/v1.13.0...v1.14.0) (2020-04-03)
+
+
+### Features
+
+* 🎸 Save training data inbetween sessions ([39f7131](https://github.com/jonpepler/asteroids-ml/commit/39f7131110e314ecb121e9bd8c86879ca255af95))
+* 🎸 Show average and max score per generation ([66e9af8](https://github.com/jonpepler/asteroids-ml/commit/66e9af8dd9a11127fa4fe66a07a56822fa639258))
+
 ## [1.13.0](https://github.com/jonpepler/asteroids-ml/compare/v1.12.0...v1.13.0) (2020-03-30)
 
 
