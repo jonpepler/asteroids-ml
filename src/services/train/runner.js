@@ -92,6 +92,13 @@ class Runner {
       .toFixed(2)
   }
 
+  getMaxScore () {
+    return this.neat.population
+      .slice(0, this.currentPopIndex)
+      .sort((a, b) => a.score - b.score)[0]
+      .score
+  }
+
   getInfo () {
     const generation = this.neat.generation.toString().padStart(4, '0')
     const genome = this.currentPopIndex.toString().padStart(3, '0')
