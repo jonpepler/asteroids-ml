@@ -84,11 +84,19 @@ class Runner {
     return this.neat.population[this.currentPopIndex]
   }
 
+  // this.neat.getAverage includes unscored brains
+  getAverage () {
+    return this.neat.population
+      .slice(0, this.currentPopIndex)
+      .reduce((acc, cur) => acc + cur.score / (this.currentPopIndex + 1), 0)
+      .toFixed(2)
+  }
+
   getInfo () {
     const generation = this.neat.generation.toString().padStart(4, '0')
     const genome = this.currentPopIndex.toString().padStart(3, '0')
     const score = this.getCurrentBrain().score.toString().padStart(4, '0')
-    const avg = this.neat.getAverage()
+    const avg = this.getAverage()
     const max = this.neat.getFittest().score
     return `Generation ${generation}, Genome ${genome}, score ${score} (avg: ${avg}, max: ${max})`
   }
