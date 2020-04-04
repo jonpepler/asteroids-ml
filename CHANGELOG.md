@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.15.1](https://github.com/jonpepler/asteroids-ml/compare/v1.15.0...v1.15.1) (2020-04-04)
+
+
+### Bug Fixes
+
+* 🐛 Use custom max score function instead of liquidcarrot's ([33678e3](https://github.com/jonpepler/asteroids-ml/commit/33678e3871c71cf280a489984fe31d78a752e841))
+
 ## [1.15.0](https://github.com/jonpepler/asteroids-ml/compare/v1.14.2...v1.15.0) (2020-04-04)
 
 
