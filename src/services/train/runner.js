@@ -95,7 +95,7 @@ class Runner {
   getMaxScore () {
     return this.neat.population
       .slice(0, this.currentPopIndex)
-      .sort((a, b) => a.score - b.score)[0]
+      .sort((a, b) => b.score - a.score)[0]
       .score
   }
 
@@ -104,7 +104,7 @@ class Runner {
     const genome = this.currentPopIndex.toString().padStart(3, '0')
     const score = this.getCurrentBrain().score.toString().padStart(4, '0')
     const avg = this.getAverage()
-    const max = this.neat.getFittest().score
+    const max = this.getMaxScore()
     return `Generation ${generation}, Genome ${genome}, score ${score} (avg: ${avg}, max: ${max})`
   }
 
