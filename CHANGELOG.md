@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.15.0](https://github.com/jonpepler/asteroids-ml/compare/v1.14.2...v1.15.0) (2020-04-04)
+
+
+### Features
+
+* 🎸 Calculate average based on only tested brains ([316bd51](https://github.com/jonpepler/asteroids-ml/commit/316bd515b9b8bd1ffcc4d36cde1e2f92823b6f3c))
+* 🎸 Spawn new asteroids if there are too few ([e2da9ae](https://github.com/jonpepler/asteroids-ml/commit/e2da9aebd591724173c906f93f11457f9938776f))
+
 ### [1.14.2](https://github.com/jonpepler/asteroids-ml/compare/v1.14.1...v1.14.2) (2020-04-03)
 
 
