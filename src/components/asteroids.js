@@ -16,6 +16,7 @@ import Runner from '../services/train/runner'
 import { getDirectionVector, closestPoint, distanceBetweenPoints } from './asteroids/util/geometry'
 
 import './style/asteroids.scss'
+import Asteroid from './asteroids/objects/asteroid'
 
 const asteroidKillScore = 10
 let ship
@@ -86,7 +87,7 @@ const Asteroids = (props) => {
   }
 
   const trainingEnd = win => {
-    if (win) runner.giveScore(100)
+    if (win) runner.giveScore(1000)
     if (!runner.nextBrain()) runner.nextGeneration()
     setupGame()
   }
@@ -337,6 +338,15 @@ const Asteroids = (props) => {
     })
     asteroidsToSplice.forEach(index => asteroids.splice(index, 1))
     asteroids.push(...newAsteroids)
+    const totalSize = asteroids.reduce((ts, a) => ts + a.size, 0)
+    if (totalSize < 1200) {
+      asteroids.push(
+        new Asteroid(0, 0)
+          .withRandomShape()
+          .withRandomCorner(targetSize.w, targetSize.h)
+          .withRandomDelta()
+      )
+    }
   }
 
   const resetFill = p5 => p5.fill(defaultFill)

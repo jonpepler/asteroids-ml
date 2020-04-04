@@ -15,11 +15,25 @@ class Asteroid extends AstroObject {
     return this
       .withSize(Math.random() * (1 / 2 * this.size) + this.size / 2)
       .withRandomShape()
-      .withDelta(Asteroid.randomDelta())
+      .withRandomDelta()
+  }
+
+  withRandomDelta () {
+    return this.withDelta(Asteroid.randomDelta())
   }
 
   withRandomShape () {
     return this.withShape(Asteroid.randomShape())
+  }
+
+  withRandomCorner (boundX, boundY) {
+    const random = () => Math.random() < 0.5
+      ? [0, -this.size]
+      : [1, this.size]
+    const [rX, rY] = [random(), random()]
+    this.x = rX[0] * boundX + rX[1]
+    this.y = rY[0] * boundY + rY[1]
+    return this
   }
 
   static randomShape () {
