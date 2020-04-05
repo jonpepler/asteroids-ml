@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.15.3](https://github.com/jonpepler/asteroids-ml/compare/v1.15.2...v1.15.3) (2020-04-05)
+
+
+### Bug Fixes
+
+* 🐛 Make score retrieval more hardy ([a92355a](https://github.com/jonpepler/asteroids-ml/commit/a92355a520e2ffe9be576bf74949bd19a0fe9227))
+
 ### [1.15.2](https://github.com/jonpepler/asteroids-ml/compare/v1.15.1...v1.15.2) (2020-04-04)
 
 
