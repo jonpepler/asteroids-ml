@@ -88,14 +88,15 @@ class Runner {
   getAverage () {
     return this.neat.population
       .slice(0, this.currentPopIndex)
-      .reduce((acc, cur) => acc + cur.score / (this.currentPopIndex + 1), 0)
+      .reduce((acc, cur) => acc + (cur.score || 0) / (this.currentPopIndex + 1), 0)
       .toFixed(2)
   }
 
   getMaxScore () {
-    return this.neat.population
+    return (this.neat.population
       .slice(0, this.currentPopIndex)
-      .sort((a, b) => b.score - a.score)[0]
+      .sort((a, b) => b.score - a.score)[0] ||
+      { score: 0 })
       .score
   }
 
