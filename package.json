@@ -7,6 +7,7 @@
   "dependencies": {
     "@liquid-carrot/carrot": "^0.3.18",
     "@loadable/component": "^5.12.0",
+    "elkjs": "^0.6.2",
     "gatsby": "^2.19.45",
     "gatsby-image": "^2.2.44",
     "gatsby-plugin-manifest": "^2.2.48",

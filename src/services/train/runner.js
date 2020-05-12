@@ -1,11 +1,16 @@
-import { Neat } from '@liquid-carrot/carrot'
+import { Neat, methods } from '@liquid-carrot/carrot'
 import { getDefault } from '../defaults'
 import { get, set } from '../storage'
+import { isEmpty } from 'lodash'
+import ELK from 'elkjs/lib/elk.bundled.js'
 
 class Runner {
   constructor () {
-    this.neat = new Neat(16, 4, { population_size: 200, elitism: 50 })
+    this.neat = new Neat(16, 4, { population_size: 2, elitism: 1 })
     this.storeKey = 'brain_data'
+    this.elk = new ELK({
+      workerUrl: './node_modules/elkjs/lib/elk-worker.min.js'
+    })
   }
 
   async init () {
@@ -82,6 +87,37 @@ class Runner {
   getCurrentBrain () {
     if (this.currentPopIndex > this.neat.population.length) return {}
     return this.neat.population[this.currentPopIndex]
+  }
+
+  async getBrainGraph () {
+    const brain = this.getCurrentBrain()
+    if (isEmpty(brain)) return []
+
+    const hiddenNodes = new Set(
+      brain.nodes.filter(node => !brain.input_nodes.has(node) && !brain.output_nodes.has(node)))
+    const nodeType = node => brain.input_nodes.has(node)
+      ? 'input'
+      : brain.output_nodes.has(node)
+        ? 'output'
+        : 'hidden'
+    const nodeStr = i => `n${i}`
+    const edgeStr = i => `e${i}`
+    const graph = {
+      id: 'root',
+      layoutOptions: {
+        'elk.algorithm': 'layered',
+        'elk.direction': 'RIGHT',
+        'elk.padding': '[top=0,left=0,bottom=0,right=0]',
+        'elk.spacing.componentComponent': 25,
+        'elk.layered.spacing.nodeNodeBetweenLayers': 25,
+        'elk.edgeLabels.inline': true,
+        'elk.edgeRouting': 'SPLINES'
+      },
+      children: brain.nodes.map(n => ({ id: nodeStr(n.index), width: 1, height: 1, type: nodeType(n) })),
+      edges: brain.connections.map((e, i) => ({ id: edgeStr(i), sources: [nodeStr(e.from.index)], targets: [nodeStr(e.to.index)], weight: e.weight }))
+    }
+
+    return await this.elk.layout(graph)
   }
 
   // this.neat.getAverage includes unscored brains

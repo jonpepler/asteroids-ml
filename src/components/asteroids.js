@@ -29,6 +29,7 @@ let score = 0
 let gameState = -1
 let runner
 let trainingStarted = false
+let brainGraph
 const Asteroids = (props) => {
   const containerName = 'asteroid-container'
   const containerEl = useRef(null)
@@ -38,6 +39,11 @@ const Asteroids = (props) => {
   const [keyMap] = useKeyMapState()
   const isPlayMode = props.mode === 'play'
   const isTrainMode = !isPlayMode
+
+  const getBrainGraph = async () => {
+    const graph = await runner.getBrainGraph()
+    brainGraph = graph
+  }
 
   const setupGame = () => {
     ship = new Ship(targetSize.w / 2, targetSize.h / 2)
@@ -53,6 +59,7 @@ const Asteroids = (props) => {
         runner = new Runner()
         runner.init().then(() => {
           trainingStarted = true
+          getBrainGraph()
           start()
         })
       } else {
@@ -81,7 +88,7 @@ const Asteroids = (props) => {
     starMap.draw(p5)
     drawObjects(p5, [ship], asteroids, bullets)
     if (isTrainMode) drawSenses(p5)
-    if (isTrainMode) drawGeneticInfo(p5)
+    if (isTrainMode && trainingStarted) drawGeneticInfo(p5)
     drawTexts(p5)
     resetFill(p5)
   }
@@ -89,6 +96,7 @@ const Asteroids = (props) => {
   const trainingEnd = win => {
     if (win) runner.giveScore(1000)
     if (!runner.nextBrain()) runner.nextGeneration()
+    getBrainGraph()
     setupGame()
   }
 
@@ -300,7 +308,54 @@ const Asteroids = (props) => {
       p5.textAlign(p5.LEFT)
       p5.text(runner.getInfo(), 28, targetSize.h - 40)
       p5.pop()
+
+      drawBrain(p5)
     }
+  }
+
+  const drawBrain = p5 => {
+    if (brainGraph === undefined) return
+    const scale = 0.1
+    const height = brainGraph.height * scale
+    const heightOffset = targetSize.h - 40 - 15 - height
+    const widthOffset = 28
+    const nodeSize = 50
+    const connectionWeightOffset = 2.5
+    p5.push()
+    p5.stroke(250)
+    p5.translate(widthOffset, heightOffset)
+    p5.scale(scale)
+    // for each edge
+    p5.push()
+    brainGraph.edges.forEach(
+      edge => {
+        p5.strokeWeight(edge.weight + connectionWeightOffset)
+        p5.stroke(120 + edge.weight * 40)
+        edge.sections.forEach(
+          section => p5.line(section.startPoint.x, section.startPoint.y, section.endPoint.x, section.endPoint.y)
+        )
+      }
+    )
+    p5.pop()
+    // for each child
+    p5.strokeWeight(5)
+    p5.rectMode(p5.CENTER)
+    brainGraph.children.forEach(
+      child => {
+        p5.push()
+        switch (child.type) {
+          case 'input':
+            p5.fill('orange')
+            break
+          case 'output':
+            p5.fill('green')
+            break
+        }
+        p5.square(child.x, child.y, nodeSize)
+        p5.pop()
+      }
+    )
+    p5.pop()
   }
 
   const drawTexts = p5 => {
