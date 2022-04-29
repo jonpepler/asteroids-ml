@@ -6,7 +6,7 @@ import ELK from 'elkjs/lib/elk.bundled.js'
 
 class Runner {
   constructor () {
-    this.neat = new Neat(16, 4, { population_size: 2, elitism: 1 })
+    this.neat = new Neat(16, 4, { population_size: 200, elitism: 10 })
     this.storeKey = 'brain_data'
     this.elk = new ELK({
       workerUrl: './node_modules/elkjs/lib/elk-worker.min.js'
