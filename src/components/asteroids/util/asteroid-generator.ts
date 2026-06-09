@@ -23,6 +23,15 @@ export const randomCoords = (gameSize: GameSize, shipInfo: Ship): Point => {
   return point
 }
 
+// The asteroid field is kept at a roughly fixed size, which caps the reachable
+// score once a genome learns to clear it. To raise that ceiling we feed a strong
+// player more targets: one extra asteroid for every 100 points scored above 500
+// (so a bonus asteroid at 600, 700, 800, ... points).
+export const bonusAsteroidScoreThreshold = 500
+export const bonusAsteroidScoreStep = 100
+export const bonusAsteroidsForScore = (score: number): number =>
+  Math.max(0, Math.floor((score - bonusAsteroidScoreThreshold) / bonusAsteroidScoreStep))
+
 export const makeAsteroids = (gameSize: GameSize, shipInfo: Ship): Asteroid[] => {
   const num = 4 + Math.random() * 3
   return Array.from({ length: num }).map(() => {

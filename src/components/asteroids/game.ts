@@ -4,7 +4,7 @@ import Asteroid from './objects/asteroid'
 import type Bullet from './objects/bullet'
 import Ship from './objects/ship'
 import StarMap from './star-map'
-import { makeAsteroids } from './util/asteroid-generator'
+import { bonusAsteroidsForScore, makeAsteroids } from './util/asteroid-generator'
 import {
   type GameSize,
   type Line,
@@ -37,6 +37,12 @@ const episodeTickLimit = 3000
 
 const fireLimiter = 3
 
+// A small training-only fitness cost per shot fired. Discourages the dull
+// "hold fire forever" strategy without punishing aimed shots: a kill is worth
+// asteroidKillScore (10), so destroying an asteroid stays hugely net positive
+// while spraying that hits nothing slowly bleeds fitness.
+const firePenalty = 0.15
+
 export interface GameConfig {
   targetSize: GameSize
   keyMap: KeyMap
@@ -68,6 +74,7 @@ export class GameInstance {
   runTicks = 0
   private survivalAccrued = 0
   private fireCount = 0
+  private bonusAsteroidsSpawned = 0
 
   constructor(config: GameConfig) {
     this.targetSize = config.targetSize
@@ -87,6 +94,7 @@ export class GameInstance {
     this.runTicks = 0
     this.survivalAccrued = 0
     this.fireCount = 0
+    this.bonusAsteroidsSpawned = 0
     this.status = 'running'
   }
 
@@ -156,14 +164,24 @@ export class GameInstance {
     asteroidsToSplice.forEach((index) => this.asteroids.splice(index, 1))
     this.asteroids.push(...newAsteroids)
     const totalSize = this.asteroids.reduce((ts, a) => ts + a.size, 0)
-    if (totalSize < 1200) {
-      this.asteroids.push(
-        new Asteroid(0, 0)
-          .withRandomShape()
-          .withRandomCorner(this.targetSize.w, this.targetSize.h)
-          .withRandomDelta()
-      )
+    if (totalSize < 1200) this.spawnCornerAsteroid()
+
+    // Once the score climbs past the threshold, keep adding fresh targets so a
+    // strong player is not capped by the fixed field. Each boundary spawns once.
+    const bonusDue = bonusAsteroidsForScore(this.score)
+    while (this.bonusAsteroidsSpawned < bonusDue) {
+      this.spawnCornerAsteroid()
+      this.bonusAsteroidsSpawned++
     }
+  }
+
+  private spawnCornerAsteroid() {
+    this.asteroids.push(
+      new Asteroid(0, 0)
+        .withRandomShape()
+        .withRandomCorner(this.targetSize.w, this.targetSize.h)
+        .withRandomDelta()
+    )
   }
 
   private reportKeysToShip(keys: number[]) {
@@ -174,6 +192,8 @@ export class GameInstance {
           if (this.fireCount > fireLimiter) {
             this.bullets.push(this.ship.shoot())
             this.fireCount = 0
+            // Training-only cost; leaves the player's HUD score untouched.
+            if (this.training) this.onScore?.(-firePenalty)
           } else {
             this.fireCount++
           }
