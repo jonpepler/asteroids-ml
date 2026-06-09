@@ -200,8 +200,10 @@ const Asteroids = (props: AsteroidsProps) => {
   const drawBrain = (p5: P5) => {
     const brainGraph = brainGraphRef.current
     if (brainGraph === undefined || Array.isArray(brainGraph)) return
-    // Live activation of every node this tick, so the diagram shows the champion
-    // thinking rather than just its wiring. Inputs and outputs both sit in [0, 1].
+    /*
+     * Live activation of every node this tick, so the diagram shows the champion
+     * thinking rather than just its wiring. Inputs and outputs both sit in [0, 1].
+     */
     const activations = trainerRef.current?.getChampionActivations() ?? new Map<number, number>()
     const nodeId = (id: string) => Number(id.slice(1))
     const intensity = (id: number) => {
@@ -209,25 +211,41 @@ const Asteroids = (props: AsteroidsProps) => {
       return value === undefined ? 0 : Math.min(1, Math.max(0, value))
     }
     /*
-     * Draw the diagram larger than the old fixed 0.1, but cap it to a box in the
-     * bottom-left so it cannot overflow or balloon as the network grows hidden
-     * nodes over training.
+     * Draw the diagram larger than the old fixed 0.1, capped to a box in the
+     * bottom-left so it cannot overflow as the network grows. Hovering the box
+     * doubles the size for a closer look.
      */
-    const baseScale = 0.25
-    const maxHeight = targetSize.h * 0.42
-    const maxWidth = targetSize.w * 0.5
-    const scale = Math.min(baseScale, maxHeight / brainGraph.height, maxWidth / (brainGraph.width || 1))
+    const widthOffset = 28
+    const baseScale = Math.min(
+      0.25,
+      (targetSize.h * 0.42) / brainGraph.height,
+      (targetSize.w * 0.5) / (brainGraph.width || 1)
+    )
+    const baseHeight = brainGraph.height * baseScale
+    const baseTop = targetSize.h - 40 - 15 - baseHeight
+    /* Map the cursor from canvas pixels back into game coordinates (the canvas is
+     * drawn under a global scale) to test whether it is over the diagram. */
+    const canvasScale = scaleRef.current || 1
+    const mouseX = p5.mouseX / canvasScale
+    const mouseY = p5.mouseY / canvasScale
+    const hovered =
+      mouseX >= widthOffset &&
+      mouseX <= widthOffset + brainGraph.width * baseScale &&
+      mouseY >= baseTop &&
+      mouseY <= baseTop + baseHeight
+    const scale = hovered ? baseScale * 2 : baseScale
     const height = brainGraph.height * scale
     const heightOffset = targetSize.h - 40 - 15 - height
-    const widthOffset = 28
     const nodeSize = 50
     const connectionWeightOffset = 2.5
     p5.push()
     p5.translate(widthOffset, heightOffset)
     p5.scale(scale)
 
-    // Edges are as thick as their weight and light up with the signal leaving
-    // their source node: dim grey at rest, warm and bright when it fires.
+    /*
+     * Edges are as thick as their weight and light up with the signal leaving
+     * their source node: dim grey at rest, warm and bright when it fires.
+     */
     p5.push()
     for (const edge of brainGraph.edges) {
       const signal = intensity(edge.sources?.[0] ? nodeId(edge.sources[0]) : -1)
@@ -239,8 +257,10 @@ const Asteroids = (props: AsteroidsProps) => {
     }
     p5.pop()
 
-    // Nodes keep their type colour (orange input, green output, blue hidden) but
-    // brighten and swell with how strongly they are firing.
+    /*
+     * Nodes keep their type colour (orange input, green output, blue hidden) but
+     * brighten and swell with how strongly they are firing.
+     */
     p5.strokeWeight(4)
     p5.stroke(15)
     p5.rectMode(p5.CENTER)
