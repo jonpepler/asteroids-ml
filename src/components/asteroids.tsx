@@ -290,11 +290,10 @@ const Asteroids = (props: AsteroidsProps) => {
     p5.textSize(48)
     p5.text(`SCORE ${game.score.toString().padStart(4, '0')}`, 40, 80)
     p5.textAlign(p5.CENTER)
-    // Win/lose banners are only meaningful in play mode; the champion replay
-    // just loops.
-    if (isPlayMode && game.status === 'won') {
-      p5.text('YOU WIN', targetSize.w / 2, targetSize.h / 2)
-    }
+    /*
+     * The game is endless, so the only banner is the play-mode loss; the
+     * champion replay just loops.
+     */
     if (isPlayMode && game.status === 'lost') {
       p5.text('YOU LOSE', targetSize.w / 2, targetSize.h / 2)
     }

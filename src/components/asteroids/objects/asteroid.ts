@@ -1,5 +1,5 @@
 import AstroObject from '../astro-object'
-import { type Point, type Vector, asRadians } from './../util/geometry'
+import { type Point, type RandomFn, type Vector, asRadians } from './../util/geometry'
 
 const minSize = 50
 
@@ -12,52 +12,52 @@ class Asteroid extends AstroObject {
     this.size = 200
   }
 
-  withRandom() {
-    return this.withSize(Math.random() * ((1 / 2) * this.size) + this.size / 2)
-      .withRandomShape()
-      .withRandomDelta()
+  withRandom(random: RandomFn = Math.random) {
+    return this.withSize(random() * ((1 / 2) * this.size) + this.size / 2)
+      .withRandomShape(random)
+      .withRandomDelta(random)
   }
 
-  withRandomDelta() {
-    return this.withDelta(Asteroid.randomDelta())
+  withRandomDelta(random: RandomFn = Math.random) {
+    return this.withDelta(Asteroid.randomDelta(random))
   }
 
-  withRandomShape() {
-    return this.withShape(Asteroid.randomShape())
+  withRandomShape(random: RandomFn = Math.random) {
+    return this.withShape(Asteroid.randomShape(random))
   }
 
-  withRandomCorner(boundX: number, boundY: number) {
-    const random = (): Point => (Math.random() < 0.5 ? [0, -this.size] : [1, this.size])
-    const [rX, rY] = [random(), random()]
+  withRandomCorner(boundX: number, boundY: number, random: RandomFn = Math.random) {
+    const corner = (): Point => (random() < 0.5 ? [0, -this.size] : [1, this.size])
+    const [rX, rY] = [corner(), corner()]
     this.x = rX[0] * boundX + rX[1]
     this.y = rY[0] * boundY + rY[1]
     return this
   }
 
-  static randomShape(): number[][] {
-    const numPoints = Math.floor(Math.random() * 15 + 5)
+  static randomShape(random: RandomFn = Math.random): number[][] {
+    const numPoints = Math.floor(random() * 15 + 5)
     const circle = 2 * Math.PI
     const step = circle / numPoints
 
     const points: number[][] = []
     for (let i = 0; i < circle; i += step) {
-      const length = Math.random() * (2 / 3) + 1 / 3
+      const length = random() * (2 / 3) + 1 / 3
       points.push([length * Math.cos(i), length * Math.sin(i)])
     }
 
     return points
   }
 
-  static randomDelta(): Vector {
-    const random = () => Math.random() * 4 - 2
-    return { x: random(), y: random(), r: random() }
+  static randomDelta(random: RandomFn = Math.random): Vector {
+    const component = () => random() * 4 - 2
+    return { x: component(), y: component(), r: component() }
   }
 
-  spawnChildren(): Asteroid[] {
+  spawnChildren(random: RandomFn = Math.random): Asteroid[] {
     const newSize = (this.size * 2) / 3
     if (newSize < minSize) return []
     const newAsteroid = (delta: Vector) =>
-      new Asteroid(this.x, this.y).withSize(newSize).withRandomShape().withDelta(delta)
+      new Asteroid(this.x, this.y).withSize(newSize).withRandomShape(random).withDelta(delta)
 
     // keep one child on the same delta, and send the other two at 45 degree angles
     // slightly increase the rotation speed

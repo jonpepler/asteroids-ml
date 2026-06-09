@@ -8,12 +8,13 @@ import { bonusAsteroidsForScore, makeAsteroids } from './util/asteroid-generator
 import {
   type GameSize,
   type Line,
+  type RandomFn,
   closestPoint,
   distanceBetweenPoints,
   getDirectionVector
 } from './util/geometry'
 
-export type GameStatus = 'init' | 'running' | 'won' | 'lost'
+export type GameStatus = 'init' | 'running' | 'lost'
 
 export interface SensePoint {
   line: number
@@ -27,31 +28,50 @@ export interface Sense {
 }
 
 const asteroidKillScore = 10
-const winBonus = 1000
-// Fitness shaping: a small per-tick reward (capped) so "stay alive and don't
-// crash" is learnable before kills become reachable, plus an episode tick limit
-// so a passive genome can't stall a generation. Kept well below kill value.
+/*
+ * Fitness shaping: a small per-tick reward (capped) so "stay alive and don't
+ * crash" is learnable before kills become reachable, plus an episode tick limit
+ * so a passive genome can't stall a generation. Kept well below kill value.
+ */
 const survivalRewardPerTick = 0.1
 const survivalRewardCap = 30
 const episodeTickLimit = 3000
 
 const fireLimiter = 3
 
-// A small training-only fitness cost per shot fired. Discourages the dull
-// "hold fire forever" strategy without punishing aimed shots: a kill is worth
-// asteroidKillScore (10), so destroying an asteroid stays hugely net positive
-// while spraying that hits nothing slowly bleeds fitness.
+/*
+ * A small training-only fitness cost per shot fired. Discourages the dull
+ * "hold fire forever" strategy without punishing aimed shots: a kill is worth
+ * asteroidKillScore (10), so destroying an asteroid stays hugely net positive
+ * while spraying that hits nothing slowly bleeds fitness.
+ */
 const firePenalty = 0.15
+
+/*
+ * The game is endless (no win): a fresh full-size asteroid is spawned whenever
+ * the field is down to one or zero "big" ones, so there is always something
+ * substantial to engage. Children from splitting fall below this size.
+ */
+const bigAsteroidSize = 150
 
 export interface GameConfig {
   targetSize: GameSize
   keyMap: KeyMap
-  // When true, apply training-only mechanics (survival reward, episode timeout)
-  // and emit fitness events.
+  /*
+   * When true, apply training-only mechanics (survival reward, firing cost,
+   * episode timeout) and emit fitness events.
+   */
   training: boolean
-  // Receives fitness events (kills, survival, win bonus) for the trainer to
-  // attribute to the genome under evaluation. Unused in play mode.
+  /*
+   * Receives fitness events (kills, survival, firing cost) for the trainer to
+   * attribute to the genome under evaluation. Unused in play mode.
+   */
   onScore?: (amount: number) => void
+  /*
+   * Source of randomness for asteroid spawns. Defaults to Math.random; headless
+   * training passes a seeded generator so a generation's genomes share a layout.
+   */
+  random?: RandomFn
 }
 
 // The pure Asteroids simulation: no p5, no React, no trainer. `step(keys)`
@@ -63,6 +83,7 @@ export class GameInstance {
   keyMap: KeyMap
   training: boolean
   onScore?: (amount: number) => void
+  random: RandomFn
 
   ship!: Ship
   asteroids!: Asteroid[]
@@ -81,12 +102,13 @@ export class GameInstance {
     this.keyMap = config.keyMap
     this.training = config.training
     this.onScore = config.onScore
+    this.random = config.random ?? Math.random
     this.reset()
   }
 
   reset() {
     this.ship = new Ship(this.targetSize.w / 2, this.targetSize.h / 2)
-    this.asteroids = makeAsteroids(this.targetSize, this.ship)
+    this.asteroids = makeAsteroids(this.targetSize, this.ship, this.random)
     this.bullets = []
     this.starMap = StarMap.generate(this.targetSize.w, this.targetSize.h)
     this.senses = []
@@ -108,7 +130,6 @@ export class GameInstance {
     this.bullets = this.bullets.filter((obj) => !obj.old)
     this.updateAsteroids()
     if (this.training) this.applyTrainingRewards()
-    this.testWin()
     this.testLose()
   }
 
@@ -118,16 +139,11 @@ export class GameInstance {
       this.onScore?.(survivalRewardPerTick)
       this.survivalAccrued += survivalRewardPerTick
     }
-    // Time out a run that drags on so a purely evasive genome can't stall the
-    // generation. Killing the ship routes through the normal loss path.
+    /*
+     * Time out a run that drags on so a purely evasive genome can't stall the
+     * generation. Killing the ship routes through the normal loss path.
+     */
     if (this.runTicks >= episodeTickLimit && !this.ship.old) this.ship.cleanup()
-  }
-
-  private testWin() {
-    if (this.status === 'running' && this.asteroids.length === 0) {
-      this.status = 'won'
-      this.onScore?.(winBonus)
-    }
   }
 
   private testLose() {
@@ -155,7 +171,7 @@ export class GameInstance {
     const asteroidsToSplice: number[] = []
     this.asteroids.forEach((obj, i) => {
       if (obj.old) {
-        newAsteroids.push(...obj.spawnChildren())
+        newAsteroids.push(...obj.spawnChildren(this.random))
         asteroidsToSplice.push(i)
         this.onScore?.(asteroidKillScore)
         this.score += asteroidKillScore
@@ -163,11 +179,12 @@ export class GameInstance {
     })
     asteroidsToSplice.forEach((index) => this.asteroids.splice(index, 1))
     this.asteroids.push(...newAsteroids)
-    const totalSize = this.asteroids.reduce((ts, a) => ts + a.size, 0)
-    if (totalSize < 1200) this.spawnCornerAsteroid()
 
-    // Once the score climbs past the threshold, keep adding fresh targets so a
-    // strong player is not capped by the fixed field. Each boundary spawns once.
+    // Keep a big asteroid in play: once down to one or zero, send in a fresh one.
+    const bigCount = this.asteroids.filter((a) => a.size >= bigAsteroidSize).length
+    if (bigCount <= 1) this.spawnCornerAsteroid()
+
+    // Escalate endlessly: one extra asteroid per 100 points, each spawned once.
     const bonusDue = bonusAsteroidsForScore(this.score)
     while (this.bonusAsteroidsSpawned < bonusDue) {
       this.spawnCornerAsteroid()
@@ -178,9 +195,9 @@ export class GameInstance {
   private spawnCornerAsteroid() {
     this.asteroids.push(
       new Asteroid(0, 0)
-        .withRandomShape()
-        .withRandomCorner(this.targetSize.w, this.targetSize.h)
-        .withRandomDelta()
+        .withRandomShape(this.random)
+        .withRandomCorner(this.targetSize.w, this.targetSize.h, this.random)
+        .withRandomDelta(this.random)
     )
   }
 

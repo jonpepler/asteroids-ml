@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { Rng } from '../../lib/neat'
 import { getDefault } from '../../services/defaults'
 import { GameInstance } from './game'
 import { bonusAsteroidsForScore } from './util/asteroid-generator'
@@ -7,16 +8,12 @@ const targetSize = getDefault('targetSize')
 const keyMap = getDefault('keyMap')
 
 describe('bonusAsteroidsForScore', () => {
-  it('adds nothing up to and including the 500 point threshold', () => {
+  it('adds one asteroid for every 100 points scored', () => {
     expect(bonusAsteroidsForScore(0)).toBe(0)
-    expect(bonusAsteroidsForScore(500)).toBe(0)
-    expect(bonusAsteroidsForScore(599)).toBe(0)
-  })
-
-  it('adds one asteroid per 100 points above 500', () => {
-    expect(bonusAsteroidsForScore(600)).toBe(1)
-    expect(bonusAsteroidsForScore(700)).toBe(2)
-    expect(bonusAsteroidsForScore(1500)).toBe(10)
+    expect(bonusAsteroidsForScore(99)).toBe(0)
+    expect(bonusAsteroidsForScore(100)).toBe(1)
+    expect(bonusAsteroidsForScore(250)).toBe(2)
+    expect(bonusAsteroidsForScore(1500)).toBe(15)
   })
 })
 
@@ -38,20 +35,44 @@ describe('GameInstance fire penalty', () => {
   })
 })
 
-describe('GameInstance bonus asteroids', () => {
-  it('spawns extra asteroids as the score passes each threshold, only once each', () => {
+describe('GameInstance is endless', () => {
+  it('never reaches a win state and keeps a big asteroid in play', () => {
+    const game = new GameInstance({ targetSize, keyMap, training: false })
+    for (let i = 0; i < 50; i++) game.step([])
+    // No win status exists any more, and the field is never left empty.
+    expect(game.status).not.toBe('won')
+    expect(game.asteroids.length).toBeGreaterThan(0)
+  })
+
+  it('spawns extra asteroids as the score climbs, only once per 100 points', () => {
     const game = new GameInstance({ targetSize, keyMap, training: false })
     const before = game.asteroids.length
-    // floor((2000 - 500) / 100) = 15 bonus asteroids are due in this single step,
-    // which dwarfs the at-most-one fixed-density respawn.
+    // floor(2000 / 100) = 20 bonus asteroids are due in this single step, which
+    // dwarfs the at-most-one big-asteroid top-up.
     game.score = 2000
     game.step([])
-    expect(game.asteroids.length).toBeGreaterThanOrEqual(before + 15)
+    expect(game.asteroids.length).toBeGreaterThanOrEqual(before + 20)
 
     // The same score is already satisfied, so no further bonus is added (the
-    // count can only grow by the single fixed-density respawn, if at all).
+    // count can only grow by the single big-asteroid top-up, if at all).
     const afterFirstStep = game.asteroids.length
     game.step([])
     expect(game.asteroids.length).toBeLessThanOrEqual(afterFirstStep + 1)
+  })
+})
+
+describe('GameInstance seeding', () => {
+  const layout = (seed: number) => {
+    const rng = new Rng(seed)
+    const game = new GameInstance({ targetSize, keyMap, training: true, random: () => rng.next() })
+    return game.asteroids.map((a) => [Math.round(a.x), Math.round(a.y), Math.round(a.size)])
+  }
+
+  it('produces an identical asteroid layout for the same seed', () => {
+    expect(layout(42)).toEqual(layout(42))
+  })
+
+  it('produces a different layout for a different seed', () => {
+    expect(layout(1)).not.toEqual(layout(2))
   })
 })

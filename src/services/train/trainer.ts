@@ -42,12 +42,17 @@ class WorkerPool {
     })
   }
 
-  async evaluate(genomes: GenomeJSON[], targetSize: GameSize, keyMap: KeyMap): Promise<number[]> {
+  async evaluate(
+    genomes: GenomeJSON[],
+    targetSize: GameSize,
+    keyMap: KeyMap,
+    seed: number
+  ): Promise<number[]> {
     const batches = splitIntoBatches(genomes, this.workers.length)
     const results = await Promise.all(
       batches.map((genomesBatch, i) =>
         genomesBatch.length
-          ? this.runOne(this.workers[i], { genomes: genomesBatch, targetSize, keyMap })
+          ? this.runOne(this.workers[i], { genomes: genomesBatch, targetSize, keyMap, seed })
           : Promise.resolve([])
       )
     )
@@ -123,10 +128,13 @@ export class Trainer {
     while (this.running && this.pool) {
       try {
         const population = this.runner.neat.population
+        // Seed by generation: one shared layout per generation, advancing each
+        // generation so the population does not overfit a single scenario.
         const scores = await this.pool.evaluate(
           population.map((g) => g.toJSON()),
           this.targetSize,
-          this.keyMap
+          this.keyMap,
+          this.runner.neat.generation
         )
         if (!this.running) break
         this.unscramble(scores).forEach((score, i) => {

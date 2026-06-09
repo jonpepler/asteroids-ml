@@ -17,6 +17,13 @@ export interface GameSize {
   h: number
 }
 
+/*
+ * A source of [0, 1) randomness. Defaults to Math.random in rendered play, but
+ * headless training passes a seeded generator so every genome in a generation
+ * faces the same asteroid layout and fitness is comparable.
+ */
+export type RandomFn = () => number
+
 export const sumVectors = (a: Vector, b: Vector): Required<Vector> => ({
   x: (a.x || 0) + (b.x || 0),
   y: (a.y || 0) + (b.y || 0),
