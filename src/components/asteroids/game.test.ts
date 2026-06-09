@@ -59,6 +59,20 @@ describe('GameInstance is endless', () => {
     game.step([])
     expect(game.asteroids.length).toBeLessThanOrEqual(afterFirstStep + 1)
   })
+
+  it('spawns an extra asteroid on the timed cadence', () => {
+    // Two identical seeded games (no input, so no kills or removals); the one
+    // that crosses the 600-tick boundary gains the timed spawn the other has not.
+    const make = () => {
+      const rng = new Rng(7)
+      return new GameInstance({ targetSize, keyMap, training: false, random: () => rng.next() })
+    }
+    const before = make()
+    for (let i = 0; i < 599; i++) before.step([])
+    const after = make()
+    for (let i = 0; i < 600; i++) after.step([])
+    expect(after.asteroids.length).toBeGreaterThan(before.asteroids.length)
+  })
 })
 
 describe('GameInstance seeding', () => {

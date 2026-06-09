@@ -54,6 +54,14 @@ const firePenalty = 0.15
  */
 const bigAsteroidSize = 150
 
+/*
+ * Steady, skill-independent pressure: a fresh asteroid arrives on a fixed tick
+ * cadence (roughly every 10 seconds at 60fps) on top of the score-based spawns,
+ * so even a flawless dodger is eventually overwhelmed. Measured in ticks, not
+ * wall-clock, so it behaves identically in headless training.
+ */
+const timedSpawnIntervalTicks = 600
+
 export interface GameConfig {
   targetSize: GameSize
   keyMap: KeyMap
@@ -122,6 +130,9 @@ export class GameInstance {
 
   step(keys: number[]) {
     if (this.status !== 'running') return
+    // Count every tick in every mode (the timed asteroid spawn and the training
+    // timeout both key off this).
+    this.runTicks++
     this.reportKeysToShip(keys)
     this.updateObjects([this.ship], this.asteroids, this.bullets)
     this.checkCollisions(this.asteroids, this.bullets)
@@ -134,7 +145,6 @@ export class GameInstance {
   }
 
   private applyTrainingRewards() {
-    this.runTicks++
     if (this.survivalAccrued < survivalRewardCap) {
       this.onScore?.(survivalRewardPerTick)
       this.survivalAccrued += survivalRewardPerTick
@@ -183,6 +193,9 @@ export class GameInstance {
     // Keep a big asteroid in play: once down to one or zero, send in a fresh one.
     const bigCount = this.asteroids.filter((a) => a.size >= bigAsteroidSize).length
     if (bigCount <= 1) this.spawnCornerAsteroid()
+
+    // Steady time pressure on top of the score spawns.
+    if (this.runTicks % timedSpawnIntervalTicks === 0) this.spawnCornerAsteroid()
 
     // Escalate endlessly: one extra asteroid per 100 points, each spawned once.
     const bonusDue = bonusAsteroidsForScore(this.score)
