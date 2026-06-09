@@ -3,7 +3,7 @@ import { Genome } from './genome'
 import { InnovationTracker } from './innovation'
 import { Neat, defaultConfig } from './neat'
 import { Rng } from './rng'
-import type { NeatConfig } from './types'
+import type { ConnectionGene, NeatConfig, NodeGene } from './types'
 
 const config = (overrides: Partial<NeatConfig> = {}): NeatConfig => ({
   inputs: 3,
@@ -150,5 +150,139 @@ describe('Neat evolution', () => {
     evaluate(reloaded)
     reloaded.evolve()
     expect(reloaded.population).toHaveLength(30)
+  })
+
+  it('gives new structure fresh innovation numbers after a reload, with no collisions', () => {
+    const neat = new Neat(
+      config({ populationSize: 20, seed: 8, addNodeRate: 1, addConnectionRate: 1 })
+    )
+    evaluate(neat)
+    for (let i = 0; i < 3; i++) {
+      neat.evolve()
+      evaluate(neat)
+    }
+    const saved = neat.toJSON()
+
+    const reloaded = new Neat(
+      config({ populationSize: 20, seed: 8, addNodeRate: 1, addConnectionRate: 1 })
+    )
+    reloaded.loadPopulation(saved.population, saved.generation)
+    const maxBefore = Math.max(
+      ...reloaded.population.flatMap((g) => g.connections.map((c) => c.innovation))
+    )
+
+    evaluate(reloaded)
+    reloaded.evolve()
+
+    // No genome reuses an innovation number for two different connections.
+    for (const genome of reloaded.population) {
+      const innovations = genome.connections.map((c) => c.innovation)
+      expect(new Set(innovations).size).toBe(innovations.length)
+    }
+    // New connections were minted beyond anything loaded, proving the tracker
+    // restarted past the saved structure rather than colliding with it.
+    const maxAfter = Math.max(
+      ...reloaded.population.flatMap((g) => g.connections.map((c) => c.innovation))
+    )
+    expect(maxAfter).toBeGreaterThan(maxBefore)
+  })
+})
+
+describe('Genome.crossover', () => {
+  it('inherits matching genes and takes disjoint/excess from the fitter parent', () => {
+    const fitter = new Genome(
+      [
+        { id: 0, type: 'input', bias: 0 },
+        { id: 1, type: 'input', bias: 0 },
+        { id: 2, type: 'output', bias: 0 },
+        { id: 3, type: 'hidden', bias: 0 }
+      ],
+      [
+        { innovation: 0, from: 0, to: 2, weight: 0.5, enabled: true },
+        { innovation: 1, from: 1, to: 2, weight: 0.6, enabled: true },
+        { innovation: 2, from: 0, to: 3, weight: 0.7, enabled: true },
+        { innovation: 4, from: 3, to: 2, weight: 0.8, enabled: true }
+      ]
+    )
+    fitter.score = 10
+    const other = new Genome(
+      [
+        { id: 0, type: 'input', bias: 0 },
+        { id: 1, type: 'input', bias: 0 },
+        { id: 2, type: 'output', bias: 0 },
+        { id: 5, type: 'hidden', bias: 0 }
+      ],
+      [
+        { innovation: 0, from: 0, to: 2, weight: -1, enabled: true },
+        { innovation: 1, from: 1, to: 2, weight: -1, enabled: true },
+        { innovation: 3, from: 1, to: 5, weight: -1, enabled: true },
+        { innovation: 6, from: 5, to: 2, weight: -1, enabled: true }
+      ]
+    )
+    other.score = 1
+
+    const child = Genome.crossover(fitter, other, new Rng(1))
+    // Matching genes (0, 1) plus the fitter's own genes (2, 4); none of the
+    // other parent's disjoint/excess genes (3, 6).
+    expect(child.connections.map((c) => c.innovation).sort((a, b) => a - b)).toEqual([0, 1, 2, 4])
+    // Hidden node referenced by the fitter's genes is carried; the other
+    // parent's unused hidden node is not.
+    expect(child.nodes.some((n) => n.id === 3)).toBe(true)
+    expect(child.nodes.some((n) => n.id === 5)).toBe(false)
+    // A matching gene's weight comes from one of the two parents.
+    const matching = child.connections.find((c) => c.innovation === 0)
+    expect([0.5, -1]).toContain(matching?.weight)
+  })
+})
+
+describe('Genome add-connection mutation', () => {
+  it('does not duplicate connections once the network is saturated', () => {
+    const cfg = config({
+      inputs: 1,
+      outputs: 1,
+      addConnectionRate: 1,
+      addNodeRate: 0,
+      weightMutationRate: 0,
+      biasMutationRate: 0
+    })
+    const rng = new Rng(2)
+    const tracker = new InnovationTracker(0, 2)
+    const genome = Genome.minimal(rng, tracker, cfg)
+    expect(genome.connections).toHaveLength(1)
+    // The only feed-forward connection already exists, so repeated attempts add
+    // nothing rather than duplicating it or looping forever.
+    for (let i = 0; i < 50; i++) genome.mutate(rng, tracker, cfg)
+    expect(genome.connections).toHaveLength(1)
+  })
+})
+
+describe('Neat speciation', () => {
+  const speciesNodes = (): NodeGene[] => [
+    { id: 0, type: 'input', bias: 0 },
+    { id: 1, type: 'input', bias: 0 },
+    { id: 2, type: 'output', bias: 0 }
+  ]
+  const speciesConns = (weight: number): ConnectionGene[] => [
+    { innovation: 0, from: 0, to: 2, weight, enabled: true },
+    { innovation: 1, from: 1, to: 2, weight, enabled: true }
+  ]
+
+  it('splits structurally distant genomes into separate species', () => {
+    const neat = new Neat(config({ inputs: 2, outputs: 1, populationSize: 20, seed: 3 }))
+    const near = Array.from({ length: 10 }, () => {
+      const g = new Genome(speciesNodes(), speciesConns(0))
+      g.score = 1
+      return g
+    })
+    // Identical structure but very different weights pushes the compatibility
+    // distance past the threshold, so these form a second species.
+    const far = Array.from({ length: 10 }, () => {
+      const g = new Genome(speciesNodes(), speciesConns(8))
+      g.score = 1
+      return g
+    })
+    neat.population = [...near, ...far]
+    neat.evolve()
+    expect(neat.species.length).toBeGreaterThanOrEqual(2)
   })
 })
