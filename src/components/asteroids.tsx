@@ -1,7 +1,7 @@
-import { Network } from '@liquid-carrot/carrot'
 import { Suspense, lazy, useEffect, useRef } from 'react'
 import AstroFooter from '../components/asteroids/footer'
 import type { GameSize } from '../components/asteroids/util/geometry'
+import { Genome } from '../lib/neat'
 import { get } from '../services/storage'
 import { mapOutputToKeys } from '../services/train/controls'
 import type { BestRecord, BrainGraph, GenStat } from '../services/train/runner'
@@ -47,7 +47,7 @@ const Asteroids = (props: AsteroidsProps) => {
   const startedRef = useRef(false)
   const brainGraphRef = useRef<BrainGraph | [] | undefined>(undefined)
   // In watch mode the champion is loaded once from the saved best genome.
-  const watchNetworkRef = useRef<Network | null>(null)
+  const watchNetworkRef = useRef<Genome | null>(null)
   const pressedKeysRef = useRef<number[]>([])
   const scaleRef = useRef(1)
   const speedRef = useRef(props.speed ?? 1)
@@ -67,7 +67,7 @@ const Asteroids = (props: AsteroidsProps) => {
       // Attract mode: replay the saved best genome, no training.
       get('brain_data').then((data) => {
         const stored = data as { best?: BestRecord }
-        if (stored?.best?.json) watchNetworkRef.current = Network.fromJSON(stored.best.json)
+        if (stored?.best?.json) watchNetworkRef.current = Genome.fromJSON(stored.best.json)
       })
       startedRef.current = true
       return

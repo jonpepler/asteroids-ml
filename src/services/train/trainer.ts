@@ -1,6 +1,6 @@
-import { Network, type NetworkJSON } from '@liquid-carrot/carrot'
 import type { GameInstance } from '../../components/asteroids/game'
 import type { GameSize } from '../../components/asteroids/util/geometry'
+import { Genome, type GenomeJSON } from '../../lib/neat'
 import type { KeyMap } from '../defaults'
 import { mapOutputToKeys } from './controls'
 import type { EvalRequest, EvalResponse } from './eval.worker'
@@ -36,7 +36,7 @@ class WorkerPool {
     })
   }
 
-  async evaluate(genomes: NetworkJSON[], targetSize: GameSize, keyMap: KeyMap): Promise<number[]> {
+  async evaluate(genomes: GenomeJSON[], targetSize: GameSize, keyMap: KeyMap): Promise<number[]> {
     const batches = splitIntoBatches(genomes, this.workers.length)
     const results = await Promise.all(
       batches.map((genomesBatch, i) =>
@@ -71,7 +71,7 @@ export class Trainer {
   private running = false
   private onGeneration?: (history: GenStat[]) => void
 
-  championNetwork: Network | null = null
+  championNetwork: Genome | null = null
   championScore = Number.NEGATIVE_INFINITY
 
   constructor(config: TrainerConfig) {
@@ -83,7 +83,7 @@ export class Trainer {
   async init() {
     await this.runner.init()
     if (this.runner.best) {
-      this.championNetwork = Network.fromJSON(this.runner.best.json)
+      this.championNetwork = Genome.fromJSON(this.runner.best.json)
       this.championScore = this.runner.best.score
     }
     const size = Math.max(1, Math.min(maxWorkers, navigator.hardwareConcurrency || 4))
@@ -157,7 +157,7 @@ export class Trainer {
     const best = this.runner.best
     if (best && best.score > this.championScore) {
       this.championScore = best.score
-      this.championNetwork = Network.fromJSON(best.json)
+      this.championNetwork = Genome.fromJSON(best.json)
     }
   }
 

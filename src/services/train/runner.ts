@@ -1,13 +1,12 @@
-import { Neat, type Network, type NetworkJSON, methods } from '@liquid-carrot/carrot'
 import ELK, { type ELK as ElkInstance, type ElkNode } from 'elkjs/lib/elk.bundled.js'
 import { isEmpty } from 'lodash'
+import { type Genome, type GenomeJSON, Neat } from '../../lib/neat'
 import { getDefault } from '../defaults'
 import { get, set } from '../storage'
 import { mapOutputToKeys } from './controls'
 
 interface BrainHead {
   generation: number
-  genome: number
 }
 
 // Compact per-generation summary, kept for the whole run so a fitness chart can
@@ -20,18 +19,16 @@ export interface GenStat {
 }
 
 export interface BestRecord {
-  json: NetworkJSON
+  json: GenomeJSON
   gen: number
   score: number
 }
 
 interface StoredBrain {
   head: BrainHead
-  currentGeneration?: NetworkJSON[]
+  currentGeneration?: GenomeJSON[]
   best?: BestRecord
   history?: GenStat[]
-  // legacy field from the pre-Vite format (the entire generations array)
-  data?: NetworkJSON[][]
 }
 
 export interface BrainGraphNode {
@@ -56,14 +53,19 @@ export interface BrainGraph {
   edges: BrainGraphEdge[]
 }
 
+const inputs = 16
+const outputs = 4
 const populationSize = 200
-const elitism = 25
 
+// Owns the NEAT population and the run's recorded history. The heavy lifting
+// (mutation, crossover, speciation, elitism) lives in the `neat` package; this
+// class just wires it to persistence, stats and the brain diagram.
 class Runner {
   neat: Neat
-  storeKey = 'brain_data'
+  // Bumped from the carrot-era 'brain_data': those genomes cannot run on this
+  // engine, so they are left untouched and a fresh run starts under a new key.
+  storeKey = 'brain_data_v2'
   elk: ElkInstance
-  currentPopIndex = 0
   history: GenStat[] = []
   best?: BestRecord
   private lastSaveAt = 0
@@ -72,131 +74,64 @@ class Runner {
   saveIntervalMs = 1500
 
   constructor() {
-    this.neat = new Neat(16, 4, {
-      population_size: populationSize,
-      elitism,
-      // Feed-forward-only mutations. The default (ALL) adds recurrent and gated
-      // connections that are useless for this stateless whisker-reactive task
-      // and only bloat the search; FFW grows clean feed-forward topology.
-      mutation: methods.mutation.FFW
-    })
-    // Run ELK in-thread. The old workerUrl pointed at a node_modules path that
-    // only existed under the Gatsby dev server, not in a bundled build.
+    this.neat = new Neat({ inputs, outputs, populationSize })
+    // Run ELK in-thread for the brain-diagram layout.
     this.elk = new ELK()
   }
 
   async init() {
-    const brainData = (await get(this.storeKey)) as StoredBrain | ''
-    // Accept the new compact format and the legacy { data: NetworkJSON[][] } one.
-    const currentGeneration =
-      brainData && (brainData.currentGeneration ?? brainData.data?.[brainData.head.generation])
-    if (brainData && currentGeneration) {
-      const gen = brainData.head.generation
-      this.neat.fromJSON(currentGeneration)
-      this.neat.generation = gen
-      this.neat.population.forEach((_, i) => {
-        this.neat.population[i].score = currentGeneration[i].score
-      })
-      this.currentPopIndex = brainData.head.genome
-      this.history = brainData.history ?? []
-      this.best = brainData.best
-    } else {
-      this.currentPopIndex = 0
-      this.initialiseScore()
+    const stored = (await get(this.storeKey)) as StoredBrain | undefined
+    if (stored?.currentGeneration?.length) {
+      this.neat.loadPopulation(stored.currentGeneration, stored.head.generation)
+      this.history = stored.history ?? []
+      this.best = stored.best
     }
   }
 
-  initialiseScore() {
-    this.neat.population = this.neat.population.map((brain) => {
-      brain.score = 0
-      return brain
-    })
-  }
-
   recordGenerationStats() {
-    const scores = this.neat.population.map((brain) => brain.score ?? 0)
+    const scores = this.neat.population.map((genome) => genome.score ?? 0)
     const best = Math.max(...scores)
     const min = Math.min(...scores)
     const avg = scores.reduce((acc, score) => acc + score, 0) / scores.length
     this.history.push({ gen: this.neat.generation, best, avg, min })
 
     if (!this.best || best > this.best.score) {
-      const bestBrain = this.neat.population[scores.indexOf(best)]
-      this.best = { json: bestBrain.toJSON(), gen: this.neat.generation, score: best }
+      const bestGenome = this.neat.population[scores.indexOf(best)]
+      this.best = { json: bestGenome.toJSON(), gen: this.neat.generation, score: best }
     }
   }
 
   nextGeneration() {
-    // Snapshot the completed generation before we rebuild the population.
+    // Snapshot the completed generation, then let the engine evolve it. Elitism
+    // and champion preservation are handled inside neat.evolve(), so progress
+    // can no longer go backwards the way it did with the hand-rolled loop.
     this.recordGenerationStats()
-    this.neat.sort()
-
-    // Keep the best genomes from the last generation, unchanged.
-    const elites = this.neat.population.slice(0, this.neat.elitism)
-
-    // Build offspring from the (sorted) previous population.
-    const offspring: Network[] = []
-    for (let i = 0; i < this.neat.population_size - this.neat.elitism; i++) {
-      offspring.push(this.neat.getOffspring())
-    }
-
-    // Mutate ONLY the offspring; the elites must survive intact, otherwise the
-    // champion can be corrupted each generation and progress is non-monotonic.
-    this.neat.population = offspring
-    this.neat.mutate()
-    this.neat.population = [...elites, ...offspring]
-
-    this.initialiseScore()
-
-    this.neat.generation++
-    this.currentPopIndex = 0
+    this.neat.evolve()
   }
 
   saveCurrentGeneration(force = false) {
     const now = performance.now()
     if (!force && now - this.lastSaveAt < this.saveIntervalMs) return
     this.lastSaveAt = now
-    const generation = this.neat.toJSON()
-    // toJSON drops the live score, so copy it back on.
-    generation.forEach((_g, i) => {
-      generation[i].score = this.neat.population[i].score
-    })
 
     // Store only the current generation plus a compact history and the best
     // genome, rather than every generation ever (which grew without bound).
     set(this.storeKey, {
-      head: {
-        generation: this.neat.generation,
-        genome: this.currentPopIndex
-      },
-      currentGeneration: generation,
+      head: { generation: this.neat.generation },
+      currentGeneration: this.neat.population.map((genome) => genome.toJSON()),
       best: this.best,
       history: this.history
     } satisfies StoredBrain)
   }
 
-  nextBrain() {
-    this.saveCurrentGeneration()
-    const withinPop = this.currentPopIndex < this.neat.population.length - 1
-    if (withinPop) this.currentPopIndex++
-    return withinPop
-  }
-
-  getCurrentBrain(): Network {
-    if (this.currentPopIndex >= this.neat.population.length) return {} as Network
-    return this.neat.population[this.currentPopIndex]
-  }
-
   getBrainGraph(): Promise<BrainGraph | []> {
-    return this.buildGraph(this.getCurrentBrain())
+    return this.buildGraph(this.neat.best())
   }
 
-  async buildGraph(brain: Network): Promise<BrainGraph | []> {
-    if (isEmpty(brain)) return []
+  async buildGraph(brain: Genome): Promise<BrainGraph | []> {
+    if (!brain || isEmpty(brain.nodes)) return []
 
-    const nodeType = (node: { index: number }) =>
-      brain.input_nodes.has(node) ? 'input' : brain.output_nodes.has(node) ? 'output' : 'hidden'
-    const nodeStr = (i: number) => `n${i}`
+    const nodeStr = (id: number) => `n${id}`
     const edgeStr = (i: number) => `e${i}`
     const graph = {
       id: 'root',
@@ -210,56 +145,22 @@ class Runner {
         'elk.edgeRouting': 'SPLINES'
       },
       children: brain.nodes.map((n) => ({
-        id: nodeStr(n.index),
+        id: nodeStr(n.id),
         width: 1,
         height: 1,
-        type: nodeType(n)
+        type: n.type
       })),
-      edges: brain.connections.map((e, i) => ({
-        id: edgeStr(i),
-        sources: [nodeStr(e.from.index)],
-        targets: [nodeStr(e.to.index)],
-        weight: e.weight
-      }))
+      edges: brain.connections
+        .filter((c) => c.enabled)
+        .map((e, i) => ({
+          id: edgeStr(i),
+          sources: [nodeStr(e.from)],
+          targets: [nodeStr(e.to)],
+          weight: e.weight
+        }))
     }
 
     return (await this.elk.layout(graph as unknown as ElkNode)) as unknown as BrainGraph
-  }
-
-  // this.neat.getAverage includes unscored brains
-  getAverage() {
-    return this.neat.population
-      .slice(0, this.currentPopIndex)
-      .reduce((acc, cur) => acc + (cur.score || 0) / (this.currentPopIndex + 1), 0)
-      .toFixed(2)
-  }
-
-  getMaxScore() {
-    return (
-      this.neat.population
-        .slice(0, this.currentPopIndex)
-        .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))[0] || { score: 0 }
-    ).score
-  }
-
-  getInfo() {
-    const generation = this.neat.generation.toString().padStart(4, '0')
-    const genome = this.currentPopIndex.toString().padStart(3, '0')
-    const score = Math.round(this.getCurrentBrain().score ?? 0)
-      .toString()
-      .padStart(4, '0')
-    const avg = this.getAverage()
-    const max = Math.round(this.getMaxScore() ?? 0)
-    return `Generation ${generation}, Genome ${genome}, score ${score} (avg: ${avg}, max: ${max})`
-  }
-
-  getBrainOutput(input: number[]) {
-    return this.mapOutputToKeys(this.getCurrentBrain().activate(input))
-  }
-
-  giveScore(score: number) {
-    const brain = this.getCurrentBrain()
-    brain.score = (brain.score ?? 0) + score
   }
 
   mapOutputToKeys(output: number[]): number[] {

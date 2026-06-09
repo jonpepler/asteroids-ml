@@ -1,11 +1,11 @@
-import { Network, type NetworkJSON } from '@liquid-carrot/carrot'
 import { GameInstance } from '../../components/asteroids/game'
 import type { GameSize } from '../../components/asteroids/util/geometry'
+import { Genome, type GenomeJSON } from '../../lib/neat'
 import type { KeyMap } from '../defaults'
 import { mapOutputToKeys } from './controls'
 
 export interface EvalRequest {
-  genomes: NetworkJSON[]
+  genomes: GenomeJSON[]
   targetSize: GameSize
   keyMap: KeyMap
 }
@@ -18,7 +18,7 @@ export interface EvalResponse {
 // main thread so several batches evaluate in parallel while the UI stays smooth.
 const evaluate = ({ genomes, targetSize, keyMap }: EvalRequest): number[] =>
   genomes.map((json) => {
-    const network = Network.fromJSON(json)
+    const network = Genome.fromJSON(json)
     let fitness = 0
     const game = new GameInstance({
       targetSize,

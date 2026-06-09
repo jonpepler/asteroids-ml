@@ -20,33 +20,39 @@ describe('Runner.mapOutputToKeys', () => {
   })
 })
 
-describe('Runner score helpers', () => {
-  it('averages only the brains tested so far', () => {
+describe('Runner.recordGenerationStats', () => {
+  it('summarises the generation and captures the best genome', () => {
     const runner = new Runner()
-    runner.neat.population[0].score = 10
-    runner.neat.population[1].score = 20
-    runner.currentPopIndex = 2
-    // (10 + 20) / (currentPopIndex + 1) = 30 / 3
-    expect(runner.getAverage()).toBe('10.00')
+    runner.neat.population[3].score = 42
+    runner.neat.population[10].score = 17
+
+    runner.recordGenerationStats()
+
+    expect(runner.history).toHaveLength(1)
+    const [stat] = runner.history
+    expect(stat.best).toBe(42)
+    expect(stat.min).toBe(0)
+    expect(runner.best?.score).toBe(42)
+    expect(runner.best?.gen).toBe(0)
   })
 
-  it('reports the max score among tested brains', () => {
+  it('only replaces the all-time best when a generation beats it', () => {
     const runner = new Runner()
-    runner.neat.population[0].score = 5
-    runner.neat.population[1].score = 42
-    runner.neat.population[2].score = 13
-    runner.currentPopIndex = 3
-    expect(runner.getMaxScore()).toBe(42)
+    runner.neat.population[0].score = 30
+    runner.recordGenerationStats()
+    runner.neat.population[0].score = 10
+    runner.recordGenerationStats()
+    expect(runner.best?.score).toBe(30)
   })
 })
 
-describe('Runner.giveScore', () => {
-  it('accumulates score onto the current brain', () => {
+describe('Runner.nextGeneration', () => {
+  it('records stats and advances the generation counter', () => {
     const runner = new Runner()
-    runner.currentPopIndex = 0
-    runner.getCurrentBrain().score = 0
-    runner.giveScore(10)
-    runner.giveScore(5)
-    expect(runner.getCurrentBrain().score).toBe(15)
+    runner.neat.population[0].score = 5
+    runner.nextGeneration()
+    expect(runner.neat.generation).toBe(1)
+    expect(runner.history).toHaveLength(1)
+    expect(runner.neat.population).toHaveLength(200)
   })
 })

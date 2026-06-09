@@ -4,6 +4,9 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// The NEAT engine now lives in src/lib/neat (a self-contained, typed package),
+// so there is no longer an untyped carrot dependency to alias or patch.
+
 // Served from https://jonpepler.github.io/asteroids-ml/, so every asset and
 // route is namespaced under this base path. The router basename must match.
 export const basePath = '/asteroids-ml/'
@@ -21,18 +24,6 @@ const spaFallback = () => ({
 
 export default defineConfig({
   base: basePath,
-  resolve: {
-    alias: {
-      // carrot's published `dist` files re-`require` sibling source paths that
-      // don't exist next to them, so Rollup can't bundle them for the browser.
-      // Point at the clean source (the `dist/index.min.js` entry resolves to it
-      // anyway). A patch-package fix declares one undeclared `copyNetwork`
-      // global in neat.js that otherwise throws under ESM strict mode.
-      '@liquid-carrot/carrot': fileURLToPath(
-        new URL('./node_modules/@liquid-carrot/carrot/src/index.js', import.meta.url)
-      )
-    }
-  },
   plugins: [
     react(),
     VitePWA({

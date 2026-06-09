@@ -10,7 +10,6 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@liquid-carrot/carrot": "^0.3.20",
     "elkjs": "^0.9.3",
     "idb-keyval": "^6.2.1",
     "lodash": "^4.17.21",
@@ -33,7 +32,6 @@
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
     "jsdom": "^25.0.1",
-    "patch-package": "^8.0.1",
     "sass": "^1.83.0",
     "typescript": "^5.7.2",
     "vite": "^5.4.11",
@@ -41,7 +39,6 @@
     "vitest": "^2.1.8"
   },
   "scripts": {
-    "postinstall": "patch-package",
     "dev": "vite",
     "start": "vite",
     "build": "vite build",
