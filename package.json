@@ -7,7 +7,7 @@
   "author": "Jon Pepler",
   "license": "MIT",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "dependencies": {
     "elkjs": "^0.9.3",
