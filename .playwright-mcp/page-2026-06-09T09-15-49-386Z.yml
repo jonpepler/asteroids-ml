@@ -1,0 +1,9 @@
+- generic [ref=e2]:
+  - complementary
+  - contentinfo [ref=e3]:
+    - link "settings" [ref=e4] [cursor=pointer]:
+      - /url: /asteroids-ml/settings
+    - contentinfo [ref=e5]:
+      - text: asteroids-ml 1.16.0 | © 2026
+      - link "jonpepler" [ref=e6] [cursor=pointer]:
+        - /url: https://github.com/jonpepler

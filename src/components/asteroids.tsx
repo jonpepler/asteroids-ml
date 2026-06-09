@@ -38,6 +38,14 @@ interface Sense {
 }
 
 const asteroidKillScore = 10
+// Fitness shaping: a small per-tick reward (capped) so "stay alive and don't
+// crash" is learnable before kills become reachable, plus an episode tick limit
+// so a passive genome can't stall a generation. Kept well below kill value.
+const survivalRewardPerTick = 0.1
+const survivalRewardCap = 30
+const episodeTickLimit = 3000
+let runTicks = 0
+let survivalAccrued = 0
 let ship: Ship
 let asteroids: Asteroid[]
 let bullets: Bullet[]
@@ -71,6 +79,8 @@ const Asteroids = (props: { mode?: string }) => {
     starMap = StarMap.generate(targetSize.w, targetSize.h)
     pressedKeys = []
     senses = []
+    runTicks = 0
+    survivalAccrued = 0
     if (score !== 0) score = 0
     if (gameState !== 0) {
       const start = () => {
@@ -291,9 +301,21 @@ const Asteroids = (props: { mode?: string }) => {
     }
   }
 
+  const applyTrainingRewards = () => {
+    runTicks++
+    if (survivalAccrued < survivalRewardCap) {
+      runner.giveScore(survivalRewardPerTick)
+      survivalAccrued += survivalRewardPerTick
+    }
+    // Time out a run that drags on so a purely evasive genome can't stall the
+    // generation. Killing the ship routes through the normal loss path.
+    if (runTicks >= episodeTickLimit && !ship.old) ship.cleanup()
+  }
+
   const gameLoop = () => {
+    // trainingLoop already computes the sensor input (and populates `senses`
+    // for the overlay), so there is no separate generateBrainInput() call here.
     trainingLoop()
-    generateBrainInput()
     reportKeysToShip(pressedKeys)
     updateObjects([ship], asteroids, bullets)
     checkCollisions(asteroids, bullets)
@@ -301,6 +323,7 @@ const Asteroids = (props: { mode?: string }) => {
     checkCollisions([ship], asteroids)
     bullets = bullets.filter((obj) => !obj.old)
     updateAsteroids(asteroids)
+    if (isTrainMode) applyTrainingRewards()
     testWinGame()
     testLoseGame()
   }

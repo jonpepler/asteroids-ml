@@ -28,9 +28,13 @@ declare module '@liquid-carrot/carrot' {
     [key: string]: unknown
   }
 
+  export type MutationMethod = unknown
+
   export interface NeatOptions {
     population_size?: number
     elitism?: number
+    mutation?: MutationMethod[]
+    selection?: unknown
     [key: string]: unknown
   }
 
@@ -40,12 +44,22 @@ declare module '@liquid-carrot/carrot' {
     population_size: number
     elitism: number
     generation: number
+    mutation: MutationMethod[]
     sort(): void
     getOffspring(): Network
-    mutate(): void
+    mutate(method?: MutationMethod[]): void
     toJSON(): NetworkJSON[]
     fromJSON(json: NetworkJSON[]): void
   }
 
-  export const methods: Record<string, unknown>
+  export const methods: {
+    mutation: {
+      FFW: MutationMethod[]
+      ALL: MutationMethod[]
+      [key: string]: MutationMethod[] | MutationMethod
+    }
+    selection: Record<string, unknown>
+    cost: Record<string, unknown>
+    [key: string]: unknown
+  }
 }
