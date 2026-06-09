@@ -84,6 +84,9 @@ const Asteroids = (props: AsteroidsProps) => {
         trainer.stop()
         return
       }
+      // Seed the chart with any history restored from storage so a refresh
+      // shows the existing curve instead of "waiting for first generation".
+      if (trainer.history.length) onGenerationRef.current?.(trainer.history)
       // Training runs flat out across worker threads in the background; the
       // generation callback refreshes the chart and the champion diagram.
       trainer.start((history) => {
