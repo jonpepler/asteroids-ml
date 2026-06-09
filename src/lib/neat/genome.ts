@@ -14,6 +14,9 @@ export class Genome {
   // Fitness, written by the caller after evaluation. Named `score` to match how
   // the host app already talks about genomes.
   score = 0
+  // The value of every node from the most recent activate(), keyed by node id.
+  // Transient (not cloned or serialised); used to visualise the network firing.
+  activations: Map<number, number> = new Map()
   private plan?: ActivationPlan
 
   constructor(nodes: NodeGene[], connections: ConnectionGene[]) {
@@ -49,7 +52,8 @@ export class Genome {
 
   activate(input: number[]): number[] {
     if (!this.plan) this.plan = compile(this)
-    return activatePlan(this.plan, input)
+    this.activations = activatePlan(this.plan, input)
+    return this.plan.outputIds.map((id) => this.activations.get(id) ?? 0)
   }
 
   private invalidate() {

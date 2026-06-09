@@ -52,6 +52,15 @@ describe('Genome', () => {
     }
   })
 
+  it('records an activation for every node, with inputs holding the raw input', () => {
+    const g = Genome.minimal(new Rng(7), makeTracker(), config())
+    g.activate([0.2, -0.5, 1])
+    expect(g.activations.size).toBe(g.nodes.length)
+    expect(g.nodes.every((n) => g.activations.has(n.id))).toBe(true)
+    // input node 0 carries its raw input; outputs are squashed into (0, 1)
+    expect(g.activations.get(0)).toBe(0.2)
+  })
+
   it('stays acyclic and activatable after heavy structural mutation', () => {
     const rng = new Rng(99)
     const tracker = makeTracker()

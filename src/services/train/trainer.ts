@@ -30,8 +30,14 @@ class WorkerPool {
   }
 
   private runOne(worker: Worker, request: EvalRequest): Promise<number[]> {
-    return new Promise((resolve) => {
-      worker.onmessage = (event: MessageEvent<EvalResponse>) => resolve(event.data.scores)
+    return new Promise((resolve, reject) => {
+      worker.onmessage = (event: MessageEvent<EvalResponse>) => {
+        if (event.data.error) reject(new Error(event.data.error))
+        else resolve(event.data.scores)
+      }
+      // A worker that fails to load or throws at the top level never sends a
+      // message; surface that as a rejection rather than hanging the generation.
+      worker.onerror = (event: ErrorEvent) => reject(new Error(event.message || 'worker error'))
       worker.postMessage(request)
     })
   }
@@ -170,5 +176,11 @@ export class Trainer {
   getChampionGraph(): Promise<BrainGraph | []> {
     if (!this.championNetwork) return Promise.resolve([])
     return this.runner.buildGraph(this.championNetwork)
+  }
+
+  // The champion's node activations from its most recent tick, keyed by node id,
+  // for the live brain-activity display. Matches the ids in getChampionGraph().
+  getChampionActivations(): Map<number, number> {
+    return this.championNetwork?.activations ?? new Map()
   }
 }

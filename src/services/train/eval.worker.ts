@@ -12,6 +12,7 @@ export interface EvalRequest {
 
 export interface EvalResponse {
   scores: number[]
+  error?: string
 }
 
 // Evaluate a batch of genomes headlessly and return their fitness. Runs off the
@@ -37,6 +38,11 @@ const evaluate = ({ genomes, targetSize, keyMap }: EvalRequest): number[] =>
 
 const ctx = self as unknown as Worker
 ctx.onmessage = (event: MessageEvent<EvalRequest>) => {
-  const response: EvalResponse = { scores: evaluate(event.data) }
-  ctx.postMessage(response)
+  // Report failures back to the pool instead of throwing into the void, which
+  // would leave the awaiting generation hanging forever with no clue why.
+  try {
+    ctx.postMessage({ scores: evaluate(event.data) } satisfies EvalResponse)
+  } catch (error) {
+    ctx.postMessage({ scores: [], error: String(error) } satisfies EvalResponse)
+  }
 }

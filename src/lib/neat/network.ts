@@ -65,7 +65,10 @@ export const compile = ({ nodes, connections }: GenomeShape): ActivationPlan => 
   return { inputIds, outputIds, order, incoming, bias }
 }
 
-export const activatePlan = (plan: ActivationPlan, input: number[]): number[] => {
+// Runs the plan and returns the value of every node, keyed by id. Callers that
+// only want the outputs read them off by output id; the full map also drives the
+// live brain-activity display.
+export const activatePlan = (plan: ActivationPlan, input: number[]): Map<number, number> => {
   const values = new Map<number, number>()
   plan.inputIds.forEach((id, i) => values.set(id, input[i] ?? 0))
 
@@ -77,5 +80,5 @@ export const activatePlan = (plan: ActivationPlan, input: number[]): number[] =>
     values.set(id, sigmoid(sum))
   }
 
-  return plan.outputIds.map((id) => values.get(id) ?? 0)
+  return values
 }

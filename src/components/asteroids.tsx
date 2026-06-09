@@ -197,6 +197,14 @@ const Asteroids = (props: AsteroidsProps) => {
   const drawBrain = (p5: P5) => {
     const brainGraph = brainGraphRef.current
     if (brainGraph === undefined || Array.isArray(brainGraph)) return
+    // Live activation of every node this tick, so the diagram shows the champion
+    // thinking rather than just its wiring. Inputs and outputs both sit in [0, 1].
+    const activations = trainerRef.current?.getChampionActivations() ?? new Map<number, number>()
+    const nodeId = (id: string) => Number(id.slice(1))
+    const intensity = (id: number) => {
+      const value = activations.get(id)
+      return value === undefined ? 0 : Math.min(1, Math.max(0, value))
+    }
     const scale = 0.1
     const height = brainGraph.height * scale
     const heightOffset = targetSize.h - 40 - 15 - height
@@ -204,31 +212,41 @@ const Asteroids = (props: AsteroidsProps) => {
     const nodeSize = 50
     const connectionWeightOffset = 2.5
     p5.push()
-    p5.stroke(250)
     p5.translate(widthOffset, heightOffset)
     p5.scale(scale)
+
+    // Edges are as thick as their weight and light up with the signal leaving
+    // their source node: dim grey at rest, warm and bright when it fires.
     p5.push()
     for (const edge of brainGraph.edges) {
-      p5.strokeWeight(edge.weight + connectionWeightOffset)
-      p5.stroke(120 + edge.weight * 40)
+      const signal = intensity(edge.sources?.[0] ? nodeId(edge.sources[0]) : -1)
+      p5.strokeWeight(Math.abs(edge.weight) + connectionWeightOffset)
+      p5.stroke(55 + signal * 200, 55 + signal * 165, 55 + signal * 95)
       for (const section of edge.sections) {
         p5.line(section.startPoint.x, section.startPoint.y, section.endPoint.x, section.endPoint.y)
       }
     }
     p5.pop()
-    p5.strokeWeight(5)
+
+    // Nodes keep their type colour (orange input, green output, blue hidden) but
+    // brighten and swell with how strongly they are firing.
+    p5.strokeWeight(4)
+    p5.stroke(15)
     p5.rectMode(p5.CENTER)
     for (const child of brainGraph.children) {
+      const level = 0.3 + 0.7 * intensity(nodeId(child.id))
       p5.push()
       switch (child.type) {
         case 'input':
-          p5.fill('orange')
+          p5.fill(255 * level, 165 * level, 30 * level)
           break
         case 'output':
-          p5.fill('green')
+          p5.fill(60 * level, 220 * level, 130 * level)
           break
+        default:
+          p5.fill(90 * level, 160 * level, 255 * level)
       }
-      p5.square(child.x, child.y, nodeSize)
+      p5.square(child.x, child.y, nodeSize * (0.85 + 0.3 * intensity(nodeId(child.id))))
       p5.pop()
     }
     p5.pop()

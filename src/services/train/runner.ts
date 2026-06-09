@@ -32,6 +32,8 @@ interface StoredBrain {
 }
 
 export interface BrainGraphNode {
+  // ELK node id, of the form `n${nodeId}`, used to look up the node's activation.
+  id: string
   x: number
   y: number
   type?: 'input' | 'output' | 'hidden'
@@ -44,6 +46,8 @@ export interface BrainGraphEdgeSection {
 
 export interface BrainGraphEdge {
   weight: number
+  // Source node ids (`n${nodeId}`); the first drives the edge's live brightness.
+  sources?: string[]
   sections: BrainGraphEdgeSection[]
 }
 
