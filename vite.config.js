@@ -24,20 +24,6 @@ const spaFallback = () => ({
 
 export default defineConfig({
   base: basePath,
-  // The geometry libraries (polygon -> vec2 -> line2 -> segseg) are CommonJS and
-  // guard their imports with `if (typeof require !== 'undefined')`. In the ES
-  // module eval worker that guard can be skipped, leaving `Vec2` undefined so
-  // Vec2.fromArray throws and training stalls. Pre-bundling them to ESM (the same
-  // treatment dev uses) resolves the requires up front, in the worker too.
-  optimizeDeps: {
-    include: ['polygon', 'vec2', 'line2', 'segseg', 'point-in-polygon']
-  },
-  worker: {
-    format: 'es'
-  },
-  build: {
-    commonjsOptions: { transformMixedEsModules: true }
-  },
   plugins: [
     react(),
     VitePWA({
