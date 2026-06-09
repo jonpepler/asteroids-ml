@@ -1,0 +1,13 @@
+diff --git a/node_modules/@liquid-carrot/carrot/src/neat.js b/node_modules/@liquid-carrot/carrot/src/neat.js
+index a1c7c93..818045b 100644
+--- a/node_modules/@liquid-carrot/carrot/src/neat.js
++++ b/node_modules/@liquid-carrot/carrot/src/neat.js
+@@ -176,7 +176,7 @@ const Neat = function(inputs, outputs, dataset, options) {
+     size = size || self.population_size
+ 
+     // Prioritize network, otherwise use template network, otherwise use "new network"
+-    copyNetwork = network
++    const copyNetwork = network
+       ? () => network.clone()
+       : self.template
+       ? () => self.template.clone()
