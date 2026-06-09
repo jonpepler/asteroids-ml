@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.17.0](https://github.com/jonpepler/asteroids-ml/compare/v1.16.0...v1.17.0) (2026-06-09)
+
+
+### Features
+
+* 🎸 Replace the neural net engine with an in-house typed NEAT package ([26bf063](https://github.com/jonpepler/asteroids-ml/commit/26bf063))
+* 🎸 Live brain activity in the champion diagram ([b082a16](https://github.com/jonpepler/asteroids-ml/commit/b082a16))
+* 🎸 Bigger brain diagram that doubles on hover ([1ce12d0](https://github.com/jonpepler/asteroids-ml/commit/1ce12d0))
+* 🎸 Seed training per generation so fitness is comparable ([8bbdd35](https://github.com/jonpepler/asteroids-ml/commit/8bbdd35))
+* 🎸 Endless game with score based and timed asteroid spawns, plus a firing cost ([e57d549](https://github.com/jonpepler/asteroids-ml/commit/e57d549))
+* 🎸 Increase population size ([073ffd2](https://github.com/jonpepler/asteroids-ml/commit/073ffd2))
+
+
+### Bug Fixes
+
+* 🐛 Seed the training chart from saved history on refresh ([d0cbfb2](https://github.com/jonpepler/asteroids-ml/commit/d0cbfb2))
+* 🐛 Build the eval worker as an es module so the geometry libs load ([d925dfd](https://github.com/jonpepler/asteroids-ml/commit/d925dfd))
+
 ## [1.16.0](https://github.com/jonpepler/asteroids-ml/compare/v1.15.3...v1.16.0) (2020-05-12)
 
 

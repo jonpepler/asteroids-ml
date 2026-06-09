@@ -4,12 +4,17 @@
 
 [Play Asteroids](https://jonpepler.github.io/asteroids-ml/play)
 
-[Watch Asteroids play Asteroids (WIP)](https://jonpepler.github.io/asteroids-ml/)
+[Watch Asteroids play Asteroids](https://jonpepler.github.io/asteroids-ml/)
 
-A neuroevolution (NEAT, via [@liquid-carrot/carrot](https://github.com/liquidcarrot/carrot))
-trainer learns to play a small [p5](https://p5js.org/) Asteroids clone. Each genome
-"sees" the field through whisker sensors and outputs the four control keys. Progress
-is saved to IndexedDB so training continues across reloads.
+A neuroevolution (NEAT) trainer learns to play a small [p5](https://p5js.org/)
+Asteroids clone. Each genome "sees" the field through whisker sensors and outputs
+the four control keys. The population is evaluated headlessly across web workers
+while the current champion plays on screen, with its brain lighting up as it
+fires. Progress is saved to IndexedDB so training continues across reloads.
+
+The NEAT engine is an in-house, fully typed package in [`src/lib/neat`](src/lib/neat/README.md)
+(genomes, innovation tracking, crossover, speciation, seedable RNG). It replaced
+the old, unmaintained `@liquid-carrot/carrot` dependency.
 
 ## tech
 
@@ -17,12 +22,12 @@ is saved to IndexedDB so training continues across reloads.
 - TypeScript (strict)
 - [Biome](https://biomejs.dev/) for lint + format
 - [Vitest](https://vitest.dev/) for tests
-- p5 for rendering, carrot for the neural net, elkjs for the brain graph layout
+- p5 for rendering, an in-house NEAT package for the neural net, elkjs for the brain graph layout
 
 ## development
 
 ```sh
-npm install      # installs deps and applies the carrot patch (see patches/)
+npm install      # install deps
 npm run dev      # start the dev server
 npm run build    # production build into dist/
 npm run preview  # serve the production build locally
@@ -32,13 +37,16 @@ npm run typecheck
 ```
 
 The app is served from the `/asteroids-ml/` base path (matching GitHub Pages).
-Pushing to `master` runs CI (lint, typecheck, test, build) and deploys `dist/`
+Pushing to `main` runs CI (lint, typecheck, test, build) and deploys `dist/`
 to GitHub Pages via Actions.
 
 ## notes
 
-- See [`docs/recommendations.md`](docs/recommendations.md) for ideas on improving the
-  neural net shape, fitness function, and remaining roadmap items.
+- The game is endless: there is no win state, and fresh asteroids keep arriving
+  with the score and on a timer, so difficulty always climbs.
+- See [`docs/recommendations.md`](docs/recommendations.md) and
+  [`docs/roadmap.md`](docs/roadmap.md) for ideas on improving the neural net
+  shape, fitness function, and remaining roadmap items.
 
 ## todo
 
