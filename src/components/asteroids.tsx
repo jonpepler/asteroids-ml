@@ -208,7 +208,15 @@ const Asteroids = (props: AsteroidsProps) => {
       const value = activations.get(id)
       return value === undefined ? 0 : Math.min(1, Math.max(0, value))
     }
-    const scale = 0.1
+    /*
+     * Draw the diagram larger than the old fixed 0.1, but cap it to a box in the
+     * bottom-left so it cannot overflow or balloon as the network grows hidden
+     * nodes over training.
+     */
+    const baseScale = 0.25
+    const maxHeight = targetSize.h * 0.42
+    const maxWidth = targetSize.w * 0.5
+    const scale = Math.min(baseScale, maxHeight / brainGraph.height, maxWidth / (brainGraph.width || 1))
     const height = brainGraph.height * scale
     const heightOffset = targetSize.h - 40 - 15 - height
     const widthOffset = 28

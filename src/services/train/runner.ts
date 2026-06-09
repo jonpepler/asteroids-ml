@@ -52,6 +52,7 @@ export interface BrainGraphEdge {
 }
 
 export interface BrainGraph {
+  width: number
   height: number
   children: BrainGraphNode[]
   edges: BrainGraphEdge[]
