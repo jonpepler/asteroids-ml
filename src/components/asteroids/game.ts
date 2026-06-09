@@ -28,14 +28,32 @@ export interface Sense {
 }
 
 const asteroidKillScore = 10
+
 /*
- * Fitness shaping: a small per-tick reward (capped) so "stay alive and don't
- * crash" is learnable before kills become reachable, plus an episode tick limit
- * so a passive genome can't stall a generation. Kept well below kill value.
+ * Ticks-to-seconds: the live game runs at 60fps and headless training steps at
+ * the same rate, so one second is 60 ticks everywhere. The survival curve and
+ * episode length below are written in seconds and converted through this.
  */
-const survivalRewardPerTick = 0.1
-const survivalRewardCap = 30
-const episodeTickLimit = 3000
+const ticksPerSecond = 60
+
+/*
+ * Fitness shaping: an uncapped per-tick survival reward whose rate decays over
+ * the episode, so staying alive is always worth fitness (which rewards active
+ * field management) while the opening pays the most and a stalled run can't
+ * farm a flat rate forever. The rate runs from survivalStartRate down to
+ * survivalEndRate across the full episode, interpolated geometrically.
+ */
+const survivalStartRate = 10 // points per second at the start of an episode
+const survivalEndRate = 0.05 // points per second by the episode time limit
+const episodeTimeLimitSeconds = 600 // 10 minutes; also the safety timeout
+const episodeTickLimit = episodeTimeLimitSeconds * ticksPerSecond
+
+/*
+ * Surviving all the way to the time limit is near-impossible against the
+ * escalating asteroid field, so it earns a large one-off bonus: a clear target
+ * for genuine mastery rather than the dull "camp and spray" local optimum.
+ */
+const survivalCompletionBonus = 500
 
 const fireLimiter = 3
 
@@ -101,7 +119,6 @@ export class GameInstance {
   score = 0
   status: GameStatus = 'init'
   runTicks = 0
-  private survivalAccrued = 0
   private fireCount = 0
   private bonusAsteroidsSpawned = 0
 
@@ -122,7 +139,6 @@ export class GameInstance {
     this.senses = []
     this.score = 0
     this.runTicks = 0
-    this.survivalAccrued = 0
     this.fireCount = 0
     this.bonusAsteroidsSpawned = 0
     this.status = 'running'
@@ -145,15 +161,23 @@ export class GameInstance {
   }
 
   private applyTrainingRewards() {
-    if (this.survivalAccrued < survivalRewardCap) {
-      this.onScore?.(survivalRewardPerTick)
-      this.survivalAccrued += survivalRewardPerTick
-    }
+    const elapsedSeconds = this.runTicks / ticksPerSecond
     /*
-     * Time out a run that drags on so a purely evasive genome can't stall the
-     * generation. Killing the ship routes through the normal loss path.
+     * Geometric decay from survivalStartRate to survivalEndRate across the
+     * episode: rate = start * (end / start) ** (elapsed / limit).
      */
-    if (this.runTicks >= episodeTickLimit && !this.ship.old) this.ship.cleanup()
+    const decay =
+      (survivalEndRate / survivalStartRate) ** (elapsedSeconds / episodeTimeLimitSeconds)
+    this.onScore?.((survivalStartRate * decay) / ticksPerSecond)
+    /*
+     * Safety timeout doubling as the mastery goal: a genome that lasts the whole
+     * episode is sent off through the normal loss path with a big bonus, so a
+     * hypothetical un-killable genome still can't stall the generation.
+     */
+    if (this.runTicks >= episodeTickLimit && !this.ship.old) {
+      this.onScore?.(survivalCompletionBonus)
+      this.ship.cleanup()
+    }
   }
 
   private testLose() {

@@ -3,7 +3,7 @@
 // extracted into its own published package.
 export { Genome } from './genome'
 export { Neat, defaultConfig, type NeatJSON } from './neat'
-export { Rng } from './rng'
+export { Rng, randomSeed } from './rng'
 export type {
   ConnectionGene,
   GenomeJSON,

@@ -1,6 +1,6 @@
 import type { GameInstance } from '../../components/asteroids/game'
 import type { GameSize } from '../../components/asteroids/util/geometry'
-import { Genome, type GenomeJSON } from '../../lib/neat'
+import { Genome, type GenomeJSON, randomSeed } from '../../lib/neat'
 import type { KeyMap } from '../defaults'
 import { mapOutputToKeys } from './controls'
 import type { EvalRequest, EvalResponse } from './eval.worker'
@@ -12,6 +12,11 @@ export interface TrainerConfig {
 }
 
 const maxWorkers = 8
+
+// How many random layouts each genome is scored on per generation; its fitness
+// is the average. More seeds means a cleaner, less luck-driven signal at a
+// proportional cost in evaluation time.
+const seedsPerGeneration = 5
 
 // A fixed pool of evaluation workers. Each generation is split into one batch
 // per worker, evaluated in parallel, and reassembled in population order.
@@ -46,13 +51,13 @@ class WorkerPool {
     genomes: GenomeJSON[],
     targetSize: GameSize,
     keyMap: KeyMap,
-    seed: number
+    seeds: number[]
   ): Promise<number[]> {
     const batches = splitIntoBatches(genomes, this.workers.length)
     const results = await Promise.all(
       batches.map((genomesBatch, i) =>
         genomesBatch.length
-          ? this.runOne(this.workers[i], { genomes: genomesBatch, targetSize, keyMap, seed })
+          ? this.runOne(this.workers[i], { genomes: genomesBatch, targetSize, keyMap, seeds })
           : Promise.resolve([])
       )
     )
@@ -128,13 +133,15 @@ export class Trainer {
     while (this.running && this.pool) {
       try {
         const population = this.runner.neat.population
-        // Seed by generation: one shared layout per generation, advancing each
-        // generation so the population does not overfit a single scenario.
+        // Fresh random layouts each generation, shared across the whole
+        // population and averaged per genome: comparable within the generation,
+        // and re-rolled each time so the population can't overfit fixed layouts.
+        const seeds = Array.from({ length: seedsPerGeneration }, () => randomSeed())
         const scores = await this.pool.evaluate(
           population.map((g) => g.toJSON()),
           this.targetSize,
           this.keyMap,
-          this.runner.neat.generation
+          seeds
         )
         if (!this.running) break
         this.unscramble(scores).forEach((score, i) => {
