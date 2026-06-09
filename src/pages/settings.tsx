@@ -12,6 +12,7 @@ const Settings = () => (
         <Link to="/">go back to training</Link>
         <Link to="/play">go back to playing</Link>
         <Link to="/watch">watch the champion</Link>
+        <Link to="/data">manage training data</Link>
       </div>
     </Layout>
   </Theme>

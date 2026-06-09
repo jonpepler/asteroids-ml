@@ -62,14 +62,18 @@ const inputs = 16
 const outputs = 4
 const populationSize = 200
 
+// The IndexedDB key the run is persisted under. Shared so the trainer, the
+// champion replay (watch mode) and the data screen all read the same record.
+// Bumped from the carrot-era 'brain_data': those genomes cannot run on this
+// engine, so they are left untouched and a fresh run starts under a new key.
+export const BRAIN_STORE_KEY = 'brain_data_v2'
+
 // Owns the NEAT population and the run's recorded history. The heavy lifting
 // (mutation, crossover, speciation, elitism) lives in the `neat` package; this
 // class just wires it to persistence, stats and the brain diagram.
 class Runner {
   neat: Neat
-  // Bumped from the carrot-era 'brain_data': those genomes cannot run on this
-  // engine, so they are left untouched and a fresh run starts under a new key.
-  storeKey = 'brain_data_v2'
+  storeKey = BRAIN_STORE_KEY
   elk: ElkInstance
   history: GenStat[] = []
   best?: BestRecord

@@ -1,4 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import type { ReactElement } from 'react'
+import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import type { GenStat } from '../../services/train/runner'
 import TrainPanel from './train-panel'
@@ -8,9 +10,12 @@ const history: GenStat[] = [
   { gen: 3, best: 430, avg: 81, min: 12 }
 ]
 
+// The panel renders a <Link>, so it needs router context.
+const renderPanel = (ui: ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>)
+
 describe('TrainPanel', () => {
   it('shows the latest generation stats', () => {
-    render(<TrainPanel history={history} speed={1} onSpeedChange={() => {}} />)
+    renderPanel(<TrainPanel history={history} speed={1} onSpeedChange={() => {}} />)
     // latest generation number and its average
     expect(screen.getByText('3')).toBeInTheDocument()
     expect(screen.getByText('81')).toBeInTheDocument()
@@ -19,19 +24,19 @@ describe('TrainPanel', () => {
   })
 
   it('renders zeros before the first generation completes', () => {
-    render(<TrainPanel history={[]} speed={1} onSpeedChange={() => {}} />)
+    renderPanel(<TrainPanel history={[]} speed={1} onSpeedChange={() => {}} />)
     expect(screen.getAllByText('0').length).toBeGreaterThan(0)
   })
 
   it('marks the active speed', () => {
-    render(<TrainPanel history={[]} speed={5} onSpeedChange={() => {}} />)
+    renderPanel(<TrainPanel history={[]} speed={5} onSpeedChange={() => {}} />)
     expect(screen.getByRole('button', { name: '5x' })).toHaveClass('is-active')
     expect(screen.getByRole('button', { name: '1x' })).not.toHaveClass('is-active')
   })
 
   it('reports the chosen speed when a speed button is clicked', () => {
     const onSpeedChange = vi.fn()
-    render(<TrainPanel history={[]} speed={1} onSpeedChange={onSpeedChange} />)
+    renderPanel(<TrainPanel history={[]} speed={1} onSpeedChange={onSpeedChange} />)
     fireEvent.click(screen.getByRole('button', { name: '10x' }))
     expect(onSpeedChange).toHaveBeenCalledWith(10)
   })

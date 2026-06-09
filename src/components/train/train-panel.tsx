@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import type { GenStat } from '../../services/train/runner'
 import '../style/train-panel.scss'
 import FitnessChart from './fitness-chart'
@@ -51,6 +52,10 @@ const TrainPanel = ({ history, speed, onSpeedChange }: TrainPanelProps) => {
             {s}x
           </button>
         ))}
+      </div>
+
+      <div className="train-panel__links">
+        <Link to="/data">manage data</Link>
       </div>
     </aside>
   )

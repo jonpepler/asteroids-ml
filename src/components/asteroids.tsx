@@ -4,7 +4,12 @@ import type { GameSize } from '../components/asteroids/util/geometry'
 import { Genome } from '../lib/neat'
 import { get } from '../services/storage'
 import { mapOutputToKeys } from '../services/train/controls'
-import type { BestRecord, BrainGraph, GenStat } from '../services/train/runner'
+import {
+  BRAIN_STORE_KEY,
+  type BestRecord,
+  type BrainGraph,
+  type GenStat
+} from '../services/train/runner'
 import { Trainer } from '../services/train/trainer'
 import type { P5, P5WithKeyCode } from '../types/p5'
 import type AstroObject from './asteroids/astro-object'
@@ -65,7 +70,7 @@ const Asteroids = (props: AsteroidsProps) => {
     gameRef.current = new GameInstance({ targetSize, keyMap, training: false })
     if (isWatchMode) {
       // Attract mode: replay the saved best genome, no training.
-      get('brain_data').then((data) => {
+      get(BRAIN_STORE_KEY).then((data) => {
         const stored = data as { best?: BestRecord }
         if (stored?.best?.json) watchNetworkRef.current = Genome.fromJSON(stored.best.json)
       })
