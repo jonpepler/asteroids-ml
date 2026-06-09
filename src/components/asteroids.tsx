@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useRef } from 'react'
 import AstroFooter from '../components/asteroids/footer'
 import type { GameSize } from '../components/asteroids/util/geometry'
-import Runner, { type BrainGraph } from '../services/train/runner'
+import Runner, { type BrainGraph, type GenStat } from '../services/train/runner'
 import type { P5, P5WithKeyCode } from '../types/p5'
 import type AstroObject from './asteroids/astro-object'
 import AstroBanner from './asteroids/banner'
@@ -15,7 +15,17 @@ import './style/asteroids.scss'
 // react-p5 touches `window` on import, so load it lazily (client-only, code-split).
 const Sketch = lazy(() => import('react-p5'))
 
-const Asteroids = (props: { mode?: string }) => {
+interface AsteroidsProps {
+  mode?: string
+  // Training ticks to run per rendered frame (1 = realtime). Lets training
+  // fast-forward while only the final frame of the batch is drawn.
+  speed?: number
+  // Called at each generation boundary with the latest run history, so a parent
+  // can render a progress chart.
+  onGeneration?: (history: GenStat[]) => void
+}
+
+const Asteroids = (props: AsteroidsProps) => {
   const containerName = 'asteroid-container'
   const containerEl = useRef<HTMLDivElement>(null)
   const defaultFill = 255
@@ -34,6 +44,10 @@ const Asteroids = (props: { mode?: string }) => {
   const brainGraphRef = useRef<BrainGraph | [] | undefined>(undefined)
   const pressedKeysRef = useRef<number[]>([])
   const scaleRef = useRef(1)
+  const speedRef = useRef(props.speed ?? 1)
+  speedRef.current = props.speed ?? 1
+  const onGenerationRef = useRef(props.onGeneration)
+  onGenerationRef.current = props.onGeneration
 
   const getBrainGraph = async () => {
     if (runnerRef.current) brainGraphRef.current = await runnerRef.current.getBrainGraph()
@@ -84,8 +98,15 @@ const Asteroids = (props: { mode?: string }) => {
     const runner = runnerRef.current
     const game = gameRef.current
     if (!runner || !game) return
-    if (!runner.nextBrain()) runner.nextGeneration()
-    getBrainGraph()
+    // nextBrain returns false when the generation is complete.
+    const generationComplete = !runner.nextBrain()
+    if (generationComplete) {
+      runner.nextGeneration()
+      // Refresh the brain diagram and report progress once per generation
+      // rather than once per genome, which keeps turbo speeds smooth.
+      getBrainGraph()
+      onGenerationRef.current?.(runner.history)
+    }
     game.reset()
   }
 
@@ -94,7 +115,12 @@ const Asteroids = (props: { mode?: string }) => {
     p5.background(defaultBackground)
     const game = gameRef.current
     if (!game) return
-    if (startedRef.current) runTick()
+    if (startedRef.current) {
+      // In training, run several ticks per frame so generations advance fast;
+      // only the final state of the batch is rendered. Play stays realtime.
+      const steps = isTrainMode ? Math.max(1, Math.floor(speedRef.current)) : 1
+      for (let i = 0; i < steps; i++) runTick()
+    }
     game.starMap.draw(p5)
     drawObjects(p5, [game.ship], game.asteroids, game.bullets)
     if (isTrainMode) drawSenses(p5)

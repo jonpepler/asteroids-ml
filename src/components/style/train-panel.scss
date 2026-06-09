@@ -1,0 +1,81 @@
+.train-panel {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  width: 320px;
+  padding: 12px 14px 14px;
+  background: rgba(8, 8, 8, 0.82);
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  color: #ddd;
+  font-family: monospace;
+  backdrop-filter: blur(2px);
+
+  &__title {
+    margin: 0 0 10px;
+    font-size: 13px;
+    font-weight: normal;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #888;
+  }
+
+  canvas {
+    display: block;
+    border-radius: 4px;
+  }
+
+  &__stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 12px;
+    margin: 12px 0 0;
+
+    div {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    dt {
+      color: #888;
+    }
+
+    dd {
+      margin: 0;
+      color: #fff;
+    }
+  }
+
+  &__speed {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+
+    &-label {
+      color: #888;
+      margin-right: auto;
+    }
+
+    button {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: #ccc;
+      border-radius: 4px;
+      padding: 3px 8px;
+      cursor: pointer;
+      font-family: monospace;
+
+      &:hover {
+        border-color: #555;
+      }
+
+      &.is-active {
+        background: #3ddc84;
+        border-color: #3ddc84;
+        color: #000;
+      }
+    }
+  }
+}
