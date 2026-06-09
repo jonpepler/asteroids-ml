@@ -51,14 +51,7 @@
     "lint:fix": "biome check --write .",
     "format": "biome format --write ."
   },
-  "keywords": [
-    "asteroids",
-    "machine-learning",
-    "neat",
-    "p5",
-    "vite",
-    "react"
-  ],
+  "keywords": ["asteroids", "machine-learning", "neat", "p5", "vite", "react"],
   "repository": {
     "type": "git",
     "url": "https://github.com/jonpepler/asteroids-ml"
