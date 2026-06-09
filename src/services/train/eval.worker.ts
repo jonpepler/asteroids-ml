@@ -1,0 +1,42 @@
+import { Network, type NetworkJSON } from '@liquid-carrot/carrot'
+import { GameInstance } from '../../components/asteroids/game'
+import type { GameSize } from '../../components/asteroids/util/geometry'
+import type { KeyMap } from '../defaults'
+import { mapOutputToKeys } from './controls'
+
+export interface EvalRequest {
+  genomes: NetworkJSON[]
+  targetSize: GameSize
+  keyMap: KeyMap
+}
+
+export interface EvalResponse {
+  scores: number[]
+}
+
+// Evaluate a batch of genomes headlessly and return their fitness. Runs off the
+// main thread so several batches evaluate in parallel while the UI stays smooth.
+const evaluate = ({ genomes, targetSize, keyMap }: EvalRequest): number[] =>
+  genomes.map((json) => {
+    const network = Network.fromJSON(json)
+    let fitness = 0
+    const game = new GameInstance({
+      targetSize,
+      keyMap,
+      training: true,
+      onScore: (amount) => {
+        fitness += amount
+      }
+    })
+    while (game.status === 'running') {
+      const input = game.generateBrainInput()
+      game.step(mapOutputToKeys(network.activate(input), keyMap))
+    }
+    return fitness
+  })
+
+const ctx = self as unknown as Worker
+ctx.onmessage = (event: MessageEvent<EvalRequest>) => {
+  const response: EvalResponse = { scores: evaluate(event.data) }
+  ctx.postMessage(response)
+}

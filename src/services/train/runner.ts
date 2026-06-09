@@ -3,6 +3,7 @@ import ELK, { type ELK as ElkInstance, type ElkNode } from 'elkjs/lib/elk.bundle
 import { isEmpty } from 'lodash'
 import { getDefault } from '../defaults'
 import { get, set } from '../storage'
+import { mapOutputToKeys } from './controls'
 
 interface BrainHead {
   generation: number
@@ -65,6 +66,10 @@ class Runner {
   currentPopIndex = 0
   history: GenStat[] = []
   best?: BestRecord
+  private lastSaveAt = 0
+  // Persisting the whole current generation is expensive, so throttle it during
+  // fast headless training; generation boundaries force a save (see Trainer).
+  saveIntervalMs = 1500
 
   constructor() {
     this.neat = new Neat(16, 4, {
@@ -147,7 +152,10 @@ class Runner {
     this.currentPopIndex = 0
   }
 
-  saveCurrentGeneration() {
+  saveCurrentGeneration(force = false) {
+    const now = performance.now()
+    if (!force && now - this.lastSaveAt < this.saveIntervalMs) return
+    this.lastSaveAt = now
     const generation = this.neat.toJSON()
     // toJSON drops the live score, so copy it back on.
     generation.forEach((_g, i) => {
@@ -179,8 +187,11 @@ class Runner {
     return this.neat.population[this.currentPopIndex]
   }
 
-  async getBrainGraph(): Promise<BrainGraph | []> {
-    const brain = this.getCurrentBrain()
+  getBrainGraph(): Promise<BrainGraph | []> {
+    return this.buildGraph(this.getCurrentBrain())
+  }
+
+  async buildGraph(brain: Network): Promise<BrainGraph | []> {
     if (isEmpty(brain)) return []
 
     const nodeType = (node: { index: number }) =>
@@ -252,13 +263,7 @@ class Runner {
   }
 
   mapOutputToKeys(output: number[]): number[] {
-    const keyMap = getDefault('keyMap')
-    const keys = [keyMap.shoot, keyMap.boost, keyMap.rotateLeft, keyMap.rotateRight]
-    return output
-      .map((o) => Math.round(o))
-      .map((b) => Boolean(b))
-      .map((b, i) => (b ? keys[i] : false))
-      .filter((k): k is number => k !== false)
+    return mapOutputToKeys(output, getDefault('keyMap'))
   }
 }
 

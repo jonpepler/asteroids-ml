@@ -1,7 +1,8 @@
 import { Suspense, lazy, useEffect, useRef } from 'react'
 import AstroFooter from '../components/asteroids/footer'
 import type { GameSize } from '../components/asteroids/util/geometry'
-import Runner, { type BrainGraph, type GenStat } from '../services/train/runner'
+import type { BrainGraph, GenStat } from '../services/train/runner'
+import { Trainer } from '../services/train/trainer'
 import type { P5, P5WithKeyCode } from '../types/p5'
 import type AstroObject from './asteroids/astro-object'
 import AstroBanner from './asteroids/banner'
@@ -17,11 +18,9 @@ const Sketch = lazy(() => import('react-p5'))
 
 interface AsteroidsProps {
   mode?: string
-  // Training ticks to run per rendered frame (1 = realtime). Lets training
-  // fast-forward while only the final frame of the batch is drawn.
+  // Genomes to evaluate (headless) per rendered frame in training mode.
   speed?: number
-  // Called at each generation boundary with the latest run history, so a parent
-  // can render a progress chart.
+  // Called at each generation boundary with the run history, for a chart.
   onGeneration?: (history: GenStat[]) => void
 }
 
@@ -35,12 +34,13 @@ const Asteroids = (props: AsteroidsProps) => {
   const isPlayMode = props.mode === 'play'
   const isTrainMode = !isPlayMode
 
-  // Long-lived state lives in refs so it survives React re-renders without the
-  // module-level globals the previous version relied on.
+  // Long-lived state lives in refs so it survives React re-renders.
+  // In play mode `gameRef` is the player's game; in training it is the champion
+  // replay, while `trainerRef` trains the population headlessly in the
+  // background.
   const gameRef = useRef<GameInstance | null>(null)
-  const runnerRef = useRef<Runner | null>(null)
+  const trainerRef = useRef<Trainer | null>(null)
   const startedRef = useRef(false)
-  const trainingStartedRef = useRef(false)
   const brainGraphRef = useRef<BrainGraph | [] | undefined>(undefined)
   const pressedKeysRef = useRef<number[]>([])
   const scaleRef = useRef(1)
@@ -49,26 +49,38 @@ const Asteroids = (props: AsteroidsProps) => {
   const onGenerationRef = useRef(props.onGeneration)
   onGenerationRef.current = props.onGeneration
 
-  const getBrainGraph = async () => {
-    if (runnerRef.current) brainGraphRef.current = await runnerRef.current.getBrainGraph()
+  const refreshChampionGraph = async () => {
+    const trainer = trainerRef.current
+    if (trainer) brainGraphRef.current = await trainer.getChampionGraph()
   }
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: sets up the game and trainer exactly once on mount.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: sets up the game (and trainer) exactly once on mount.
   useEffect(() => {
-    const game = new GameInstance({ targetSize, keyMap, training: isTrainMode })
-    gameRef.current = game
-    if (isTrainMode) {
-      const runner = new Runner()
-      runnerRef.current = runner
-      runner.init().then(() => {
-        // Route fitness events (kills, survival, win) onto the genome under test.
-        game.onScore = (amount) => runner.giveScore(amount)
-        trainingStartedRef.current = true
-        getBrainGraph()
-        startedRef.current = true
-      })
-    } else {
+    gameRef.current = new GameInstance({ targetSize, keyMap, training: false })
+    if (!isTrainMode) {
       startedRef.current = true
+      return
+    }
+    let cancelled = false
+    const trainer = new Trainer({ targetSize, keyMap })
+    trainerRef.current = trainer
+    trainer.init().then(() => {
+      if (cancelled) {
+        trainer.stop()
+        return
+      }
+      // Training runs flat out across worker threads in the background; the
+      // generation callback refreshes the chart and the champion diagram.
+      trainer.start((history) => {
+        onGenerationRef.current?.(history)
+        refreshChampionGraph()
+      })
+      refreshChampionGraph()
+      startedRef.current = true
+    })
+    return () => {
+      cancelled = true
+      trainer.stop()
     }
   }, [])
 
@@ -80,34 +92,22 @@ const Asteroids = (props: AsteroidsProps) => {
     windowResized(p5)
   }
 
-  // Advance the simulation one tick, sourcing controls from the brain (training)
-  // or the keyboard (play), and handle the end of a training run.
-  const runTick = () => {
+  const advance = () => {
     const game = gameRef.current
-    if (!game || game.status !== 'running') return
-    if (isTrainMode && runnerRef.current) {
-      const input = game.generateBrainInput()
-      game.step(runnerRef.current.getBrainOutput(input))
+    if (!game) return
+    if (isTrainMode) {
+      const trainer = trainerRef.current
+      if (!trainer) return
+      // Training happens on worker threads; here we just replay the champion.
+      // `speed` fast-forwards that replay (training throughput is unaffected).
+      const steps = Math.max(1, Math.floor(speedRef.current))
+      for (let i = 0; i < steps; i++) {
+        game.step(trainer.championKeys(game))
+        if (game.status !== 'running') game.reset()
+      }
     } else {
       game.step(pressedKeysRef.current)
     }
-    if (isTrainMode && game.status !== 'running') handleRunEnd()
-  }
-
-  const handleRunEnd = () => {
-    const runner = runnerRef.current
-    const game = gameRef.current
-    if (!runner || !game) return
-    // nextBrain returns false when the generation is complete.
-    const generationComplete = !runner.nextBrain()
-    if (generationComplete) {
-      runner.nextGeneration()
-      // Refresh the brain diagram and report progress once per generation
-      // rather than once per genome, which keeps turbo speeds smooth.
-      getBrainGraph()
-      onGenerationRef.current?.(runner.history)
-    }
-    game.reset()
   }
 
   const draw = (p5: P5) => {
@@ -115,16 +115,13 @@ const Asteroids = (props: AsteroidsProps) => {
     p5.background(defaultBackground)
     const game = gameRef.current
     if (!game) return
-    if (startedRef.current) {
-      // In training, run several ticks per frame so generations advance fast;
-      // only the final state of the batch is rendered. Play stays realtime.
-      const steps = isTrainMode ? Math.max(1, Math.floor(speedRef.current)) : 1
-      for (let i = 0; i < steps; i++) runTick()
-    }
+    if (startedRef.current) advance()
     game.starMap.draw(p5)
     drawObjects(p5, [game.ship], game.asteroids, game.bullets)
-    if (isTrainMode) drawSenses(p5)
-    if (isTrainMode && trainingStartedRef.current) drawGeneticInfo(p5)
+    if (isTrainMode) {
+      drawSenses(p5)
+      drawGeneticInfo(p5)
+    }
     drawTexts(p5)
     resetFill(p5)
   }
@@ -162,12 +159,17 @@ const Asteroids = (props: AsteroidsProps) => {
   }
 
   const drawGeneticInfo = (p5: P5) => {
-    const runner = runnerRef.current
-    if (!runner) return
+    const trainer = trainerRef.current
+    if (!trainer) return
+    const champion = Number.isFinite(trainer.championScore) ? Math.round(trainer.championScore) : 0
     p5.push()
     p5.textSize(18)
     p5.textAlign(p5.LEFT)
-    p5.text(runner.getInfo(), 28, targetSize.h - 40)
+    p5.text(
+      `Champion of generation ${trainer.generation} (best ${champion}), training on ${trainer.workerCount} workers`,
+      28,
+      targetSize.h - 40
+    )
     p5.pop()
 
     drawBrain(p5)
@@ -220,10 +222,12 @@ const Asteroids = (props: AsteroidsProps) => {
     p5.textSize(48)
     p5.text(`SCORE ${game.score.toString().padStart(4, '0')}`, 40, 80)
     p5.textAlign(p5.CENTER)
-    if (game.status === 'won') {
+    // Win/lose banners are only meaningful in play mode; the champion replay
+    // just loops.
+    if (isPlayMode && game.status === 'won') {
       p5.text('YOU WIN', targetSize.w / 2, targetSize.h / 2)
     }
-    if (game.status === 'lost') {
+    if (isPlayMode && game.status === 'lost') {
       p5.text('YOU LOSE', targetSize.w / 2, targetSize.h / 2)
     }
     p5.pop()

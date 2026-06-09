@@ -12,7 +12,7 @@ declare module '@liquid-carrot/carrot' {
     weight: number
   }
 
-  export interface Network {
+  export class Network {
     score?: number
     nodes: CarrotNode[]
     connections: CarrotConnection[]
@@ -21,6 +21,7 @@ declare module '@liquid-carrot/carrot' {
     activate(input: number[]): number[]
     clone(): Network
     toJSON(): NetworkJSON
+    static fromJSON(json: NetworkJSON): Network
   }
 
   export interface NetworkJSON {
