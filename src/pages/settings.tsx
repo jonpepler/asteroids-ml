@@ -11,6 +11,7 @@ const Settings = () => (
       <div className="link-block">
         <Link to="/">go back to training</Link>
         <Link to="/play">go back to playing</Link>
+        <Link to="/watch">watch the champion</Link>
       </div>
     </Layout>
   </Theme>

@@ -1,7 +1,10 @@
+import { Network } from '@liquid-carrot/carrot'
 import { Suspense, lazy, useEffect, useRef } from 'react'
 import AstroFooter from '../components/asteroids/footer'
 import type { GameSize } from '../components/asteroids/util/geometry'
-import type { BrainGraph, GenStat } from '../services/train/runner'
+import { get } from '../services/storage'
+import { mapOutputToKeys } from '../services/train/controls'
+import type { BestRecord, BrainGraph, GenStat } from '../services/train/runner'
 import { Trainer } from '../services/train/trainer'
 import type { P5, P5WithKeyCode } from '../types/p5'
 import type AstroObject from './asteroids/astro-object'
@@ -32,7 +35,8 @@ const Asteroids = (props: AsteroidsProps) => {
   const [targetSize] = useStateWithLocalStorage<GameSize>('targetSize')
   const [keyMap] = useKeyMapState()
   const isPlayMode = props.mode === 'play'
-  const isTrainMode = !isPlayMode
+  const isWatchMode = props.mode === 'watch'
+  const isTrainMode = !isPlayMode && !isWatchMode
 
   // Long-lived state lives in refs so it survives React re-renders.
   // In play mode `gameRef` is the player's game; in training it is the champion
@@ -42,6 +46,8 @@ const Asteroids = (props: AsteroidsProps) => {
   const trainerRef = useRef<Trainer | null>(null)
   const startedRef = useRef(false)
   const brainGraphRef = useRef<BrainGraph | [] | undefined>(undefined)
+  // In watch mode the champion is loaded once from the saved best genome.
+  const watchNetworkRef = useRef<Network | null>(null)
   const pressedKeysRef = useRef<number[]>([])
   const scaleRef = useRef(1)
   const speedRef = useRef(props.speed ?? 1)
@@ -57,7 +63,16 @@ const Asteroids = (props: AsteroidsProps) => {
   // biome-ignore lint/correctness/useExhaustiveDependencies: sets up the game (and trainer) exactly once on mount.
   useEffect(() => {
     gameRef.current = new GameInstance({ targetSize, keyMap, training: false })
-    if (!isTrainMode) {
+    if (isWatchMode) {
+      // Attract mode: replay the saved best genome, no training.
+      get('brain_data').then((data) => {
+        const stored = data as { best?: BestRecord }
+        if (stored?.best?.json) watchNetworkRef.current = Network.fromJSON(stored.best.json)
+      })
+      startedRef.current = true
+      return
+    }
+    if (isPlayMode) {
       startedRef.current = true
       return
     }
@@ -105,6 +120,10 @@ const Asteroids = (props: AsteroidsProps) => {
         game.step(trainer.championKeys(game))
         if (game.status !== 'running') game.reset()
       }
+    } else if (isWatchMode) {
+      const net = watchNetworkRef.current
+      game.step(net ? mapOutputToKeys(net.activate(game.generateBrainInput()), keyMap) : [])
+      if (game.status !== 'running') game.reset()
     } else {
       game.step(pressedKeysRef.current)
     }
@@ -278,8 +297,8 @@ const Asteroids = (props: AsteroidsProps) => {
 
   return (
     <div className={containerName} ref={containerEl}>
-      <AstroBanner />
-      <AstroOverlay />
+      {!isWatchMode && <AstroBanner />}
+      {!isWatchMode && <AstroOverlay />}
       <Suspense fallback={null}>
         <Sketch
           setup={setup}
@@ -289,7 +308,7 @@ const Asteroids = (props: AsteroidsProps) => {
           keyReleased={keyReleased}
         />
       </Suspense>
-      <AstroFooter />
+      {!isWatchMode && <AstroFooter />}
     </div>
   )
 }
