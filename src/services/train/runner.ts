@@ -36,6 +36,8 @@ export interface BrainGraphNode {
   id: string
   x: number
   y: number
+  width: number
+  height: number
   type?: 'input' | 'output' | 'hidden'
 }
 
@@ -61,6 +63,10 @@ export interface BrainGraph {
 const inputs = 16
 const outputs = 4
 const populationSize = 200
+
+// Side length (diagram units) each neuron occupies in the layout. The renderer
+// draws nodes to match, so the ELK spacing reflects what is actually on screen.
+export const BRAIN_NODE_SIZE = 46
 
 // The IndexedDB key the run is persisted under. Shared so the trainer, the
 // champion replay (watch mode) and the data screen all read the same record.
@@ -147,16 +153,22 @@ class Runner {
       layoutOptions: {
         'elk.algorithm': 'layered',
         'elk.direction': 'RIGHT',
-        'elk.padding': '[top=0,left=0,bottom=0,right=0]',
-        'elk.spacing.componentComponent': 25,
-        'elk.layered.spacing.nodeNodeBetweenLayers': 25,
-        'elk.edgeLabels.inline': true,
+        'elk.padding': '[top=8,left=8,bottom=8,right=8]',
+        // Lay the nodes out at the size they are actually drawn, with generous
+        // gaps, so they no longer pile on top of each other. (They were sized at
+        // 1px here but rendered far larger, which is why the diagram bunched up.)
+        'elk.spacing.componentComponent': '40',
+        'elk.spacing.nodeNode': '26',
+        'elk.layered.spacing.nodeNodeBetweenLayers': '110',
+        'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+        // Keep the inputs/outputs in their natural id order top-to-bottom.
+        'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
         'elk.edgeRouting': 'SPLINES'
       },
       children: brain.nodes.map((n) => ({
         id: nodeStr(n.id),
-        width: 1,
-        height: 1,
+        width: BRAIN_NODE_SIZE,
+        height: BRAIN_NODE_SIZE,
         type: n.type
       })),
       edges: brain.connections

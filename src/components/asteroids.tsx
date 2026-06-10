@@ -5,6 +5,7 @@ import { Genome } from '../lib/neat'
 import { get } from '../services/storage'
 import { mapOutputToKeys } from '../services/train/controls'
 import {
+  BRAIN_NODE_SIZE,
   BRAIN_STORE_KEY,
   type BestRecord,
   type BrainGraph,
@@ -14,6 +15,7 @@ import { Trainer } from '../services/train/trainer'
 import type { P5, P5WithKeyCode } from '../types/p5'
 import type AstroObject from './asteroids/astro-object'
 import AstroBanner from './asteroids/banner'
+import { describeNode } from './asteroids/brain-labels'
 import { GameInstance } from './asteroids/game'
 import AstroOverlay from './asteroids/overlay'
 import { useKeyMapState } from './hooks/use-keymap-state'
@@ -202,6 +204,18 @@ const Asteroids = (props: AsteroidsProps) => {
     drawBrain(p5)
   }
 
+  // Base colour per node type, before the activation level brightens it.
+  const nodeColour = (type?: string): [number, number, number] => {
+    switch (type) {
+      case 'input':
+        return [255, 176, 64]
+      case 'output':
+        return [86, 222, 150]
+      default:
+        return [150, 170, 255]
+    }
+  }
+
   const drawBrain = (p5: P5) => {
     const brainGraph = brainGraphRef.current
     if (brainGraph === undefined || Array.isArray(brainGraph)) return
@@ -215,76 +229,129 @@ const Asteroids = (props: AsteroidsProps) => {
       const value = activations.get(id)
       return value === undefined ? 0 : Math.min(1, Math.max(0, value))
     }
+
     /*
-     * Draw the diagram larger than the old fixed 0.1, capped to a box in the
-     * bottom-left so it cannot overflow as the network grows. Hovering the box
-     * doubles the size for a closer look.
+     * Lay the diagram out on a translucent panel pinned to the bottom-left,
+     * scaled to fit however large the network grows. The layout already spaces
+     * nodes by their real size, so this only needs to fit the whole thing.
      */
-    const widthOffset = 28
-    const baseScale = Math.min(
-      0.25,
-      (targetSize.h * 0.42) / brainGraph.height,
-      (targetSize.w * 0.5) / (brainGraph.width || 1)
+    const margin = 26
+    const titleH = 28
+    const pad = 16
+    const radius = BRAIN_NODE_SIZE / 2
+    const scale = Math.min(
+      0.3,
+      (targetSize.w * 0.5) / (brainGraph.width || 1),
+      (targetSize.h * 0.46) / (brainGraph.height || 1)
     )
-    const baseHeight = brainGraph.height * baseScale
-    const baseTop = targetSize.h - 40 - 15 - baseHeight
-    /* Map the cursor from canvas pixels back into game coordinates (the canvas is
-     * drawn under a global scale) to test whether it is over the diagram. */
+    const diagramW = brainGraph.width * scale
+    const diagramH = brainGraph.height * scale
+    const panelW = diagramW + pad * 2
+    const panelH = diagramH + pad * 2 + titleH
+    const panelX = margin
+    // Sit clear of the champion status line drawn at targetSize.h - 40.
+    const panelY = targetSize.h - 60 - panelH
+    const originX = panelX + pad
+    const originY = panelY + titleH + pad
+
+    // Cursor in game coordinates (the canvas is drawn under a global scale).
     const canvasScale = scaleRef.current || 1
     const mouseX = p5.mouseX / canvasScale
     const mouseY = p5.mouseY / canvasScale
-    const hovered =
-      mouseX >= widthOffset &&
-      mouseX <= widthOffset + brainGraph.width * baseScale &&
-      mouseY >= baseTop &&
-      mouseY <= baseTop + baseHeight
-    const scale = hovered ? baseScale * 2 : baseScale
-    const height = brainGraph.height * scale
-    const heightOffset = targetSize.h - 40 - 15 - height
-    const nodeSize = 50
-    const connectionWeightOffset = 2.5
+
+    // Panel and title.
     p5.push()
-    p5.translate(widthOffset, heightOffset)
+    p5.noStroke()
+    p5.fill(10, 12, 18, 205)
+    p5.rectMode(p5.CORNER)
+    p5.rect(panelX, panelY, panelW, panelH, 12)
+    p5.fill(150, 160, 180)
+    p5.textSize(14)
+    p5.textAlign(p5.LEFT, p5.CENTER)
+    p5.text('CHAMPION BRAIN', panelX + pad, panelY + titleH / 2 + 2)
+    p5.pop()
+
+    p5.push()
+    p5.translate(originX, originY)
     p5.scale(scale)
 
     /*
-     * Edges are as thick as their weight and light up with the signal leaving
-     * their source node: dim grey at rest, warm and bright when it fires.
+     * Edges: thickness tracks the connection weight, hue tracks its sign
+     * (teal excitatory, red inhibitory), and brightness tracks the live signal
+     * leaving the source node so active pathways glow.
      */
-    p5.push()
     for (const edge of brainGraph.edges) {
       const signal = intensity(edge.sources?.[0] ? nodeId(edge.sources[0]) : -1)
-      p5.strokeWeight(Math.abs(edge.weight) + connectionWeightOffset)
-      p5.stroke(55 + signal * 200, 55 + signal * 165, 55 + signal * 95)
+      const alpha = 30 + signal * 205
+      if (edge.weight >= 0) p5.stroke(70, 200, 180, alpha)
+      else p5.stroke(235, 110, 95, alpha)
+      p5.strokeWeight(0.8 + Math.min(Math.abs(edge.weight), 4) * 0.7)
       for (const section of edge.sections) {
         p5.line(section.startPoint.x, section.startPoint.y, section.endPoint.x, section.endPoint.y)
       }
     }
-    p5.pop()
 
     /*
-     * Nodes keep their type colour (orange input, green output, blue hidden) but
-     * brighten and swell with how strongly they are firing.
+     * Nodes: a faint glow when firing, a filled disc tinted by type and
+     * brightened by activation. Hit-test the cursor here (cheap, we are already
+     * iterating) and remember the node under it for a tooltip drawn afterwards.
      */
-    p5.strokeWeight(4)
-    p5.stroke(15)
-    p5.rectMode(p5.CENTER)
+    let hoveredId = -1
+    p5.ellipseMode(p5.CENTER)
     for (const child of brainGraph.children) {
-      const level = 0.3 + 0.7 * intensity(nodeId(child.id))
-      p5.push()
-      switch (child.type) {
-        case 'input':
-          p5.fill(255 * level, 165 * level, 30 * level)
-          break
-        case 'output':
-          p5.fill(60 * level, 220 * level, 130 * level)
-          break
-        default:
-          p5.fill(90 * level, 160 * level, 255 * level)
+      const id = nodeId(child.id)
+      const level = intensity(id)
+      const cx = child.x + child.width / 2
+      const cy = child.y + child.height / 2
+      const [r, g, b] = nodeColour(child.type)
+
+      if (mouseX >= panelX && mouseY >= panelY) {
+        const dx = mouseX - (originX + cx * scale)
+        const dy = mouseY - (originY + cy * scale)
+        if (dx * dx + dy * dy <= (radius * scale + 4) ** 2) hoveredId = id
       }
-      p5.square(child.x, child.y, nodeSize * (0.85 + 0.3 * intensity(nodeId(child.id))))
-      p5.pop()
+
+      if (level > 0.05) {
+        p5.noStroke()
+        p5.fill(r, g, b, 40 + level * 90)
+        p5.circle(cx, cy, BRAIN_NODE_SIZE * (1.4 + level * 0.8))
+      }
+      const isHovered = id === hoveredId
+      p5.strokeWeight(isHovered ? 5 : 3)
+      if (isHovered) p5.stroke(255)
+      else p5.stroke(18, 20, 28)
+      const dim = 0.4 + 0.6 * level
+      p5.fill(r * dim, g * dim, b * dim)
+      p5.circle(cx, cy, BRAIN_NODE_SIZE)
     }
+    p5.pop()
+
+    if (hoveredId >= 0) drawNodeTooltip(p5, hoveredId, activations.get(hoveredId), mouseX, mouseY)
+  }
+
+  // A small label near the cursor naming the hovered neuron and its live value.
+  const drawNodeTooltip = (p5: P5, id: number, value: number | undefined, x: number, y: number) => {
+    const { name, detail } = describeNode(id)
+    const boxW = 268
+    const boxH = 78
+    // Flip the box to whichever side keeps it on screen.
+    const bx = x + boxW + 24 > targetSize.w ? x - boxW - 14 : x + 14
+    const by = Math.min(y + 14, targetSize.h - boxH - 10)
+    p5.push()
+    p5.rectMode(p5.CORNER)
+    p5.noStroke()
+    p5.fill(8, 10, 16, 235)
+    p5.rect(bx, by, boxW, boxH, 8)
+    p5.fill(255)
+    p5.textAlign(p5.LEFT, p5.TOP)
+    p5.textSize(15)
+    p5.text(name, bx + 12, by + 10)
+    p5.fill(255, 210, 90)
+    p5.textSize(12)
+    const reading = value === undefined ? 'idle' : value.toFixed(2)
+    p5.text(`activation ${reading}`, bx + 12, by + 30)
+    p5.fill(170, 180, 200)
+    p5.text(detail, bx + 12, by + 46, boxW - 24, boxH - 50)
     p5.pop()
   }
 
