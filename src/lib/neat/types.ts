@@ -46,7 +46,18 @@ export interface NeatConfig {
   excessCoeff: number
   disjointCoeff: number
   weightCoeff: number
+  /*
+   * Initial/seed value for the compatibility threshold. At runtime the engine
+   * holds a mutable copy that adapts each generation toward `targetSpecies`, so
+   * this value is only the starting point, not the value used throughout a run.
+   */
   compatibilityThreshold: number
+  /* Target number of species the adaptive threshold steers toward. */
+  targetSpecies: number
+  /* How much the threshold is nudged up or down each generation. */
+  compatibilityThresholdStep: number
+  /* Floor for the adaptive threshold so it can never collapse to zero. */
+  minCompatibilityThreshold: number
 
   // Reproduction.
   crossoverRate: number

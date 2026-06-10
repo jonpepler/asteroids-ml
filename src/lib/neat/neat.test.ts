@@ -265,6 +265,91 @@ describe('Genome add-connection mutation', () => {
   })
 })
 
+describe('Adaptive compatibility threshold', () => {
+  const evaluate = (neat: Neat) => {
+    for (const g of neat.population) g.score = 1
+  }
+
+  it('threshold drives species count up when fewer species than target', () => {
+    /*
+     * Start with a tight threshold (5) so everything collapses to very few
+     * species, but set targetSpecies high (20). The adaptive logic should lower
+     * the threshold each generation, eventually creating more species. Assert
+     * that species count grows beyond 1 over many generations.
+     */
+    const neat = new Neat(
+      config({
+        inputs: 3,
+        outputs: 2,
+        populationSize: 80,
+        seed: 42,
+        compatibilityThreshold: 5,
+        targetSpecies: 20,
+        compatibilityThresholdStep: 0.3,
+        minCompatibilityThreshold: 0.5,
+        addNodeRate: 0.1,
+        addConnectionRate: 0.1
+      })
+    )
+    evaluate(neat)
+    for (let i = 0; i < 30; i++) {
+      neat.evolve()
+      evaluate(neat)
+    }
+    expect(neat.species.length).toBeGreaterThan(1)
+  })
+
+  it('threshold rises and merges species when count exceeds target', () => {
+    /*
+     * Inject a diverse population with genomes that span many weight levels, so
+     * a low threshold splits them into many species. Set targetSpecies to 2 so
+     * the adaptive logic raises the threshold every generation, merging species.
+     * After enough generations the count must drop toward the target.
+     */
+    const neat = new Neat(
+      config({
+        inputs: 2,
+        outputs: 1,
+        populationSize: 50,
+        seed: 55,
+        compatibilityThreshold: 0.1,
+        targetSpecies: 2,
+        compatibilityThresholdStep: 0.3,
+        minCompatibilityThreshold: 0.1,
+        addNodeRate: 0.01,
+        addConnectionRate: 0.01
+      })
+    )
+    /* Build a population spread across 5 very different weight clusters. */
+    const nodes = (): NodeGene[] => [
+      { id: 0, type: 'input', bias: 0 },
+      { id: 1, type: 'input', bias: 0 },
+      { id: 2, type: 'output', bias: 0 }
+    ]
+    const conns = (w: number): ConnectionGene[] => [
+      { innovation: 0, from: 0, to: 2, weight: w, enabled: true },
+      { innovation: 1, from: 1, to: 2, weight: w, enabled: true }
+    ]
+    neat.population = [0, 3, 6, 9, 12].flatMap((w) =>
+      Array.from({ length: 10 }, () => {
+        const g = new Genome(nodes(), conns(w))
+        g.score = 1
+        return g
+      })
+    )
+    /* Run one evolve so speciate() fires and sets the initial species count. */
+    neat.evolve()
+    evaluate(neat)
+    const initialCount = neat.species.length
+    for (let i = 0; i < 25; i++) {
+      neat.evolve()
+      evaluate(neat)
+    }
+    /* The threshold should have risen enough to merge some species. */
+    expect(neat.species.length).toBeLessThan(initialCount)
+  })
+})
+
 describe('Neat speciation', () => {
   const speciesNodes = (): NodeGene[] => [
     { id: 0, type: 'input', bias: 0 },

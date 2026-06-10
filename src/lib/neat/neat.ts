@@ -20,6 +20,9 @@ export const defaultConfig: Omit<NeatConfig, 'inputs' | 'outputs'> = {
   disjointCoeff: 1,
   weightCoeff: 0.4,
   compatibilityThreshold: 3,
+  targetSpecies: 12,
+  compatibilityThresholdStep: 0.3,
+  minCompatibilityThreshold: 0.5,
   crossoverRate: 0.75,
   survivalThreshold: 0.3,
   speciesElitismMin: 5,
@@ -41,12 +44,15 @@ export class Neat {
   generation = 0
   private rng: Rng
   private tracker: InnovationTracker
+  /* Live compatibility threshold, seeded from config and adapted each generation. */
+  private compatibilityThreshold: number
 
   constructor(options: RequiredConfig) {
     const seed = options.seed ?? randomSeed()
     this.config = { ...defaultConfig, ...options, seed }
     this.rng = new Rng(seed)
     this.tracker = new InnovationTracker(0, this.config.inputs + this.config.outputs)
+    this.compatibilityThreshold = this.config.compatibilityThreshold
     this.population = Array.from({ length: this.config.populationSize }, () =>
       Genome.minimal(this.rng, this.tracker, this.config)
     )
@@ -78,7 +84,7 @@ export class Neat {
     for (const species of this.species) species.members = []
     for (const genome of this.population) {
       const home = this.species.find(
-        (s) => genome.distance(s.representative, this.config) < this.config.compatibilityThreshold
+        (s) => genome.distance(s.representative, this.config) < this.compatibilityThreshold
       )
       if (home) home.members.push(genome)
       else this.species.push(new Species(genome))
@@ -87,6 +93,25 @@ export class Neat {
     this.species = this.species.filter((s) => s.members.length > 0)
     for (const s of this.species) {
       if (!s.members.includes(s.representative)) s.representative = s.members[0]
+    }
+    this.adaptCompatibilityThreshold()
+  }
+
+  /*
+   * Nudge the live compatibility threshold toward the target species count.
+   * Raising the threshold merges similar genomes into fewer species; lowering
+   * it splits them into more. This keeps diversity alive when the population
+   * converges and avoids premature collapse to a single species.
+   */
+  private adaptCompatibilityThreshold(): void {
+    const { targetSpecies, compatibilityThresholdStep, minCompatibilityThreshold } = this.config
+    if (this.species.length > targetSpecies) {
+      this.compatibilityThreshold += compatibilityThresholdStep
+    } else if (this.species.length < targetSpecies) {
+      this.compatibilityThreshold = Math.max(
+        minCompatibilityThreshold,
+        this.compatibilityThreshold - compatibilityThresholdStep
+      )
     }
   }
 
