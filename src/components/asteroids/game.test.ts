@@ -102,6 +102,26 @@ describe('GameInstance miss penalty', () => {
     const amounts = onScore.mock.calls.map((c) => c[0])
     expect(amounts).not.toContain(-1)
   })
+
+  it('refunds the fire cost when a bullet strikes an asteroid', () => {
+    const onScore = vi.fn()
+    const game = new GameInstance({ targetSize, keyMap, training: true, onScore })
+    // Overlap a bullet and an asteroid so they collide on this tick.
+    const ast = new Asteroid(targetSize.w / 2, targetSize.h / 2)
+    ast.withRandomShape(() => 0.5)
+    ast.withSize(80)
+    game.asteroids = [ast]
+    const bullet = game.ship.shoot()
+    bullet.x = targetSize.w / 2
+    bullet.y = targetSize.h / 2
+    game.bullets = [bullet]
+
+    game.step([])
+
+    expect(bullet.hitTarget).toBe(true)
+    // The 0.15 fire cost is handed back for the shot that landed.
+    expect(onScore.mock.calls.map((c) => c[0])).toContain(0.15)
+  })
 })
 
 describe('GameInstance sensors', () => {

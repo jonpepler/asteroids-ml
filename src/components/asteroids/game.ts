@@ -169,6 +169,17 @@ export class GameInstance {
     this.reportKeysToShip(keys)
     this.updateObjects([this.ship], this.asteroids, this.bullets)
     this.checkCollisions(this.asteroids, this.bullets)
+    /*
+     * Refund the fire cost for shots that actually struck an asteroid (any hit,
+     * not only a kill), so accurate aiming is rewarded incrementally even though
+     * destroying an asteroid takes several hits. Counted here, before the ship
+     * collision check, so friendly fire is never refunded. A struck bullet is
+     * marked hitTarget and filtered out below, so each is counted exactly once.
+     */
+    if (this.training) {
+      const contacts = this.bullets.filter((obj) => obj.hitTarget).length
+      if (contacts > 0) this.onScore?.(firePenalty * contacts)
+    }
     this.checkCollisions([this.ship], this.bullets)
     this.checkCollisions([this.ship], this.asteroids)
     /*
