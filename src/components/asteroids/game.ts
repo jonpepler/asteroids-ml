@@ -9,7 +9,6 @@ import {
   type GameSize,
   type Line,
   type RandomFn,
-  closestPoint,
   distanceBetweenPoints,
   getDirectionVector
 } from './util/geometry'
@@ -74,6 +73,14 @@ const firePenalty = 0.15
  * degenerate "never fire" optimum is avoided.
  */
 const missPenalty = 1
+
+/*
+ * Normaliser for the per-whisker closing-rate sensor. Asteroid velocity
+ * components run to about +/-2.8 px/tick and the ship can add some drift, so
+ * dividing the projected approach speed by this and clamping to [-1, 1] keeps
+ * the signal in range while leaving headroom for fast head-on approaches.
+ */
+const maxClosingSpeed = 6
 
 /*
  * The game is endless (no win): a fresh full-size asteroid is spawned whenever
@@ -285,15 +292,18 @@ export class GameInstance {
     }
   }
 
-  // Cast eight long and eight short "whisker" rays from the ship and return,
-  // per whisker, how close the nearest asteroid is (1 = nothing seen). Also
-  // records the ray geometry in `this.senses` for the overlay.
+  // Cast eight long and eight short "whisker" rays from the ship. Each whisker
+  // yields two readings for the network: how close the nearest asteroid is
+  // (1 = nothing seen) and how fast it is closing in (+1 = rushing the ship,
+  // -1 = fleeing). All distances come first, then all closing rates, matching
+  // the input-node ids. Ray geometry is recorded in `this.senses` for the overlay.
   generateBrainInput(): number[] {
     const whiskers = 8
     const longLength = 500
     const shortLength = 200
     const { targetSize, ship, asteroids } = this
     const whiskerPoints: Line[][] = []
+    const whiskerDirs: number[][] = []
     const makeWhiskers = (num: number, length: number, offset: number) => {
       for (let i = 0; i < num; i++) {
         const line: Line[] = []
@@ -383,52 +393,79 @@ export class GameInstance {
           line.push([startPoint, endPoint])
         }
         whiskerPoints.push(line)
+        whiskerDirs.push(angleVector)
       }
     }
     makeWhiskers(whiskers, longLength, 0)
     makeWhiskers(whiskers, shortLength, 360 / whiskers / 2)
 
-    const arraysWithElementsOnly = (arr: number[]) => arr.length !== 0
-    const sensePoint = (sense: Line[]): SensePoint | undefined => {
-      // use old school loop so we can break early
+    // Walk the (possibly screen-wrapped) ray segment by segment and return the
+    // first asteroid it crosses, nearest to the segment start. Unlike a bare
+    // point, this keeps the asteroid so its velocity can feed the closing-rate.
+    const senseHit = (
+      sense: Line[]
+    ): { line: number; point: number[]; asteroid: Asteroid } | undefined => {
       for (let i = 0; i < sense.length; i++) {
-        const point = closestPoint(
-          sense[i][0],
-          asteroids.flatMap((a) => a.crossedByLine(sense[i])).filter(arraysWithElementsOnly)
-        )
-        if (point.length !== 0) return { line: i, point }
+        let bestPoint: number[] | undefined
+        let bestAsteroid: Asteroid | undefined
+        let bestDistSq = Number.POSITIVE_INFINITY
+        for (const asteroid of asteroids) {
+          for (const point of asteroid.crossedByLine(sense[i])) {
+            if (point.length === 0) continue
+            const dx = point[0] - sense[i][0][0]
+            const dy = point[1] - sense[i][0][1]
+            const distSq = dx * dx + dy * dy
+            if (distSq < bestDistSq) {
+              bestDistSq = distSq
+              bestPoint = point
+              bestAsteroid = asteroid
+            }
+          }
+        }
+        if (bestPoint && bestAsteroid) return { line: i, point: bestPoint, asteroid: bestAsteroid }
       }
       return undefined
     }
-    this.senses = whiskerPoints.map((sense) => {
-      // get coords and line index of intersection point
-      const input = sensePoint(sense)
-      let value = 1
-      if (input) {
-        let length = 0
 
+    const distances: number[] = []
+    const closingRates: number[] = []
+    this.senses = whiskerPoints.map((sense, wi) => {
+      const hit = senseHit(sense)
+      let value = 1
+      let closing = 0
+      if (hit) {
+        let length = 0
         // measure length up to the line with the sense point
-        for (let i = 0; i < input.line; i++) {
+        for (let i = 0; i < hit.line; i++) {
           length += distanceBetweenPoints(sense[i][0], sense[i][1])
         }
-
         let fullLength = length
         // add the length of the next line up to the sense point
-        length += distanceBetweenPoints(sense[input.line][0], input.point)
-
-        // measure the rest of the full length of the line (could use whiskerLength)
-        for (let i = input.line; i < sense.length; i++) {
+        length += distanceBetweenPoints(sense[hit.line][0], hit.point)
+        // measure the rest of the full length of the line
+        for (let i = hit.line; i < sense.length; i++) {
           fullLength += distanceBetweenPoints(sense[i][0], sense[i][1])
         }
         value = length / fullLength
+
+        // Closing speed: the sensed asteroid's velocity relative to the ship,
+        // projected onto this whisker's outward direction and negated, so a
+        // positive reading means it is heading toward the ship.
+        const dir = whiskerDirs[wi]
+        const relX = (hit.asteroid.d.x ?? 0) - (ship.d.x ?? 0)
+        const relY = (hit.asteroid.d.y ?? 0) - (ship.d.y ?? 0)
+        const approach = -(relX * dir[0] + relY * dir[1])
+        closing = Math.max(-1, Math.min(1, approach / maxClosingSpeed))
       }
+      distances.push(value)
+      closingRates.push(closing)
       return {
         lines: sense,
-        // record which line part hit an astroid, for logging and display reasons
-        input,
+        // record which line part hit an asteroid, for logging and display reasons
+        input: hit ? { line: hit.line, point: hit.point } : undefined,
         value
       }
     })
-    return this.senses.map((sense) => sense.value)
+    return [...distances, ...closingRates]
   }
 }

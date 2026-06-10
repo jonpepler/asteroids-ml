@@ -16,22 +16,33 @@ describe('describeNode', () => {
     expect(describeNode(6).detail).toContain('90° to the left')
   })
 
-  it('marks ids 8..15 as the short-range ring', () => {
+  it('marks ids 8..15 as the short-range distance ring', () => {
     expect(describeNode(8).name).toBe('Short-range sensor')
     expect(describeNode(15).kind).toBe('input')
   })
 
+  it('names ids 16..31 as the closing-rate channel for the same whiskers', () => {
+    // id 16 mirrors whisker 0 (forward long-range), now as a closing rate.
+    const forward = describeNode(16)
+    expect(forward.kind).toBe('input')
+    expect(forward.name).toBe('Long-range closing rate')
+    expect(forward.detail).toContain('dead ahead')
+    expect(forward.detail).toContain('approaching')
+    // id 24 mirrors whisker 8 (first short-range whisker).
+    expect(describeNode(24).name).toBe('Short-range closing rate')
+  })
+
   it('names the four outputs in control order', () => {
-    expect(describeNode(16).name).toBe('Fire')
-    expect(describeNode(17).name).toBe('Thrust')
-    expect(describeNode(18).name).toBe('Turn left')
-    expect(describeNode(19).name).toBe('Turn right')
-    expect(describeNode(16).kind).toBe('output')
+    expect(describeNode(32).name).toBe('Fire')
+    expect(describeNode(33).name).toBe('Thrust')
+    expect(describeNode(34).name).toBe('Turn left')
+    expect(describeNode(35).name).toBe('Turn right')
+    expect(describeNode(32).kind).toBe('output')
   })
 
   it('labels grown structure as hidden neurons', () => {
-    const label = describeNode(20)
+    const label = describeNode(36)
     expect(label.kind).toBe('hidden')
-    expect(label.name).toBe('Hidden neuron #20')
+    expect(label.name).toBe('Hidden neuron #36')
   })
 })

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { Rng } from '../../lib/neat'
 import { getDefault } from '../../services/defaults'
 import { GameInstance } from './game'
+import Asteroid from './objects/asteroid'
 import Ship from './objects/ship'
 import { bonusAsteroidsForScore } from './util/asteroid-generator'
 
@@ -100,6 +101,35 @@ describe('GameInstance miss penalty', () => {
     game.step([])
     const amounts = onScore.mock.calls.map((c) => c[0])
     expect(amounts).not.toContain(-1)
+  })
+})
+
+describe('GameInstance sensors', () => {
+  it('returns a distance and a closing rate per whisker, all in range', () => {
+    const game = new GameInstance({ targetSize, keyMap, training: true })
+    const input = game.generateBrainInput()
+    // 16 whiskers x 2 channels (distance, closing rate).
+    expect(input).toHaveLength(32)
+    expect(Math.min(...input)).toBeGreaterThanOrEqual(-1)
+    expect(Math.max(...input)).toBeLessThanOrEqual(1)
+  })
+
+  it('sees an asteroid bearing down dead ahead as close and closing in', () => {
+    const game = new GameInstance({ targetSize, keyMap, training: true })
+    game.ship.r = 0
+    game.ship.x = targetSize.w / 2
+    game.ship.y = targetSize.h / 2
+    game.ship.d = { x: 0, y: 0 }
+    // Directly above the ship (whisker 0 points straight up), moving down at it.
+    const ahead = new Asteroid(targetSize.w / 2, targetSize.h / 2 - 300)
+    ahead.withRandomShape(() => 0.5)
+    ahead.withSize(80)
+    ahead.withDelta({ x: 0, y: 2 })
+    game.asteroids = [ahead]
+
+    const input = game.generateBrainInput()
+    expect(input[0]).toBeLessThan(1) // whisker 0 distance: something is there
+    expect(input[16]).toBeGreaterThan(0) // whisker 0 closing rate: approaching
   })
 })
 

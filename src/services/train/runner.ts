@@ -63,7 +63,9 @@ export interface BrainGraph {
   edges: BrainGraphEdge[]
 }
 
-const inputs = 16
+// 16 vision whiskers, each reporting two values: distance to the nearest
+// asteroid and how fast it is closing in. See GameInstance.generateBrainInput.
+const inputs = 32
 const outputs = 4
 const populationSize = 200
 
@@ -73,9 +75,9 @@ export const BRAIN_NODE_SIZE = 46
 
 // The IndexedDB key the run is persisted under. Shared so the trainer, the
 // champion replay (watch mode) and the data screen all read the same record.
-// Bumped from the carrot-era 'brain_data': those genomes cannot run on this
-// engine, so they are left untouched and a fresh run starts under a new key.
-export const BRAIN_STORE_KEY = 'brain_data_v2'
+// Bumped to v3 when the sensor layout grew from 16 to 32 inputs: older genomes
+// have the wrong input count, so they are left untouched and a fresh run starts.
+export const BRAIN_STORE_KEY = 'brain_data_v3'
 
 // Owns the NEAT population and the run's recorded history. The heavy lifting
 // (mutation, crossover, speciation, elitism) lives in the `neat` package; this
