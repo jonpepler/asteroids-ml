@@ -99,12 +99,49 @@ class AstroObject {
     if (this.y < 0 - offset) this.y += boundY + offset * 2
   }
 
+  /*
+   * Per-object cache of the last transformed polygon. The transform is a pure
+   * function of (shape, size, x, y, r), and within a single tick an object is
+   * queried many times at one pose (every sensing whisker, every collision
+   * pair), so memoising collapses hundreds of identical rebuilds per tick to
+   * one. Invalidated automatically when any input changes (notably applyDelta
+   * moving the object, or ship.hit swapping the shape array). Bit-exact: same
+   * maths in the same order, just not repeated.
+   */
+  private cachedPolygon: Polygon | null = null
+  private cacheX = Number.NaN
+  private cacheY = Number.NaN
+  private cacheR = Number.NaN
+  private cacheSize = Number.NaN
+  private cacheShape: number[][] | null = null
+
   getTransformedPolygon(shape?: number[][]): Polygon {
-    const points = shape === undefined ? this.shape : shape
-    return Polygon(points)
-      .scale([this.size, this.size])
-      .translate([this.x, this.y])
-      .rotate(asRadians(this.r))
+    // An explicit shape (the draw path) bypasses the cache.
+    if (shape !== undefined) {
+      return Polygon(shape)
+        .scale([this.size, this.size])
+        .translate([this.x, this.y])
+        .rotate(asRadians(this.r))
+    }
+    if (
+      this.cachedPolygon === null ||
+      this.x !== this.cacheX ||
+      this.y !== this.cacheY ||
+      this.r !== this.cacheR ||
+      this.size !== this.cacheSize ||
+      this.shape !== this.cacheShape
+    ) {
+      this.cachedPolygon = Polygon(this.shape)
+        .scale([this.size, this.size])
+        .translate([this.x, this.y])
+        .rotate(asRadians(this.r))
+      this.cacheX = this.x
+      this.cacheY = this.y
+      this.cacheR = this.r
+      this.cacheSize = this.size
+      this.cacheShape = this.shape
+    }
+    return this.cachedPolygon
   }
 
   crossedByLine(line: Line): number[][] {

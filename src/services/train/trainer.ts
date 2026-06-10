@@ -11,7 +11,10 @@ export interface TrainerConfig {
   keyMap: KeyMap
 }
 
-const maxWorkers = 8
+// Upper bound on evaluation workers. The actual count is clamped to the
+// machine's core count (less one, so the main thread can replay the champion at
+// 60fps); this cap only guards against an implausibly large reported count.
+const maxWorkers = 16
 
 // How many random layouts each genome is scored on per generation; its fitness
 // is the average. More seeds means a cleaner, less luck-driven signal at a
@@ -102,7 +105,8 @@ export class Trainer {
       this.championNetwork = Genome.fromJSON(this.runner.best.json)
       this.championScore = this.runner.best.score
     }
-    const size = Math.max(1, Math.min(maxWorkers, navigator.hardwareConcurrency || 4))
+    const cores = navigator.hardwareConcurrency || 4
+    const size = Math.max(1, Math.min(maxWorkers, cores - 1))
     this.pool = new WorkerPool(size)
   }
 
