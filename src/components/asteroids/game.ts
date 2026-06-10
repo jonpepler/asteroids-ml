@@ -57,6 +57,13 @@ const survivalCompletionBonus = 500
 const fireLimiter = 3
 
 /*
+ * The arcade's on-screen bullet cap; also forces shot economy so the trainer
+ * cannot just spin and spray (a swept shot into empty space wastes a scarce
+ * round).
+ */
+const maxBullets = 4
+
+/*
  * A small training-only fitness cost per shot fired. Discourages the dull
  * "hold fire forever" strategy without punishing aimed shots: a kill is worth
  * asteroidKillScore (10), so destroying an asteroid stays hugely net positive
@@ -281,7 +288,7 @@ export class GameInstance {
     for (const key of keys) {
       switch (key) {
         case keyMap.shoot:
-          if (this.fireCount > fireLimiter) {
+          if (this.fireCount > fireLimiter && this.bullets.length < maxBullets) {
             this.bullets.push(this.ship.shoot())
             this.fireCount = 0
             // Training-only cost; leaves the player's HUD score untouched.
@@ -303,11 +310,14 @@ export class GameInstance {
     }
   }
 
-  // Cast eight long and eight short "whisker" rays from the ship. Each whisker
-  // yields two readings for the network: how close the nearest asteroid is
-  // (1 = nothing seen) and how fast it is closing in (+1 = rushing the ship,
-  // -1 = fleeing). All distances come first, then all closing rates, matching
-  // the input-node ids. Ray geometry is recorded in `this.senses` for the overlay.
+  /*
+   * Cast eight long and eight short "whisker" rays from the ship. Each whisker
+   * yields two readings for the network: how close the nearest asteroid is
+   * (1 = nothing seen) and how fast it is closing in (+1 = rushing the ship,
+   * -1 = fleeing). All distances come first, then all closing rates, matching
+   * the input-node ids. A trailing ammo-available reading is appended last.
+   * Ray geometry is recorded in `this.senses` for the overlay.
+   */
   generateBrainInput(): number[] {
     const whiskers = 8
     const longLength = 500
@@ -477,6 +487,11 @@ export class GameInstance {
         value
       }
     })
-    return [...distances, ...closingRates]
+    /*
+     * Fraction of the bullet cap still available to fire (1 = full magazine,
+     * 0 = none left), so the network can sense the cap and time its shots.
+     */
+    const ammoAvailable = (maxBullets - this.bullets.length) / maxBullets
+    return [...distances, ...closingRates, Math.max(0, Math.min(1, ammoAvailable))]
   }
 }

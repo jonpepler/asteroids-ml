@@ -125,13 +125,29 @@ describe('GameInstance miss penalty', () => {
 })
 
 describe('GameInstance sensors', () => {
-  it('returns a distance and a closing rate per whisker, all in range', () => {
+  it('returns a distance and a closing rate per whisker plus ammo, all in range', () => {
     const game = new GameInstance({ targetSize, keyMap, training: true })
     const input = game.generateBrainInput()
-    // 16 whiskers x 2 channels (distance, closing rate).
-    expect(input).toHaveLength(32)
+    // 16 whiskers x 2 channels (distance, closing rate) + 1 ammo-available.
+    expect(input).toHaveLength(33)
     expect(Math.min(...input)).toBeGreaterThanOrEqual(-1)
     expect(Math.max(...input)).toBeLessThanOrEqual(1)
+  })
+
+  it('enforces the 4-bullet on-screen cap', () => {
+    const game = new GameInstance({ targetSize, keyMap, training: true })
+    for (let i = 0; i < 40; i++) {
+      game.step([keyMap.shoot])
+      expect(game.bullets.length).toBeLessThanOrEqual(4)
+    }
+  })
+
+  it('reflects bullet count in the ammo-available input', () => {
+    const game = new GameInstance({ targetSize, keyMap, training: true })
+    game.bullets.push(game.ship.shoot(), game.ship.shoot())
+    const input = game.generateBrainInput()
+    // (4 - 2) / 4 = 0.5
+    expect(input[32]).toBe(0.5)
   })
 
   it('sees an asteroid bearing down dead ahead as close and closing in', () => {

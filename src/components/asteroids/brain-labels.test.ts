@@ -32,17 +32,23 @@ describe('describeNode', () => {
     expect(describeNode(24).name).toBe('Short-range closing rate')
   })
 
+  it('names the ammo-available input at id 32', () => {
+    const label = describeNode(32)
+    expect(label.kind).toBe('input')
+    expect(label.name).toBe('Ammo ready')
+  })
+
   it('names the four outputs in control order', () => {
-    expect(describeNode(32).name).toBe('Fire')
-    expect(describeNode(33).name).toBe('Thrust')
-    expect(describeNode(34).name).toBe('Turn left')
-    expect(describeNode(35).name).toBe('Turn right')
-    expect(describeNode(32).kind).toBe('output')
+    expect(describeNode(33).name).toBe('Fire')
+    expect(describeNode(34).name).toBe('Thrust')
+    expect(describeNode(35).name).toBe('Turn left')
+    expect(describeNode(36).name).toBe('Turn right')
+    expect(describeNode(33).kind).toBe('output')
   })
 
   it('labels grown structure as hidden neurons', () => {
-    const label = describeNode(36)
+    const label = describeNode(37)
     expect(label.kind).toBe('hidden')
-    expect(label.name).toBe('Hidden neuron #36')
+    expect(label.name).toBe('Hidden neuron #37')
   })
 })

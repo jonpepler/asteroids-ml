@@ -4,13 +4,14 @@
  * order built in GameInstance.generateBrainInput):
  *   ids 0..15  inputs: the 16 vision whiskers' distance readings (long then short).
  *   ids 16..31 inputs: the same 16 whiskers' closing-rate readings.
- *   ids 32..35 outputs: fire, thrust, turn-left, turn-right (mapOutputToKeys).
- *   ids 36+    hidden: structure the network grew on its own.
+ *   id  32     input:  ammo-available (fraction of the 4-shot cap still free to fire).
+ *   ids 33..36 outputs: fire, thrust, turn-left, turn-right (mapOutputToKeys).
+ *   ids 37+    hidden: structure the network grew on its own.
  */
 
 const WHISKERS = 16
 const LONG_WHISKERS = WHISKERS / 2
-export const BRAIN_INPUTS = WHISKERS * 2
+export const BRAIN_INPUTS = WHISKERS * 2 + 1
 export const BRAIN_OUTPUTS = 4
 
 export type NodeKind = 'input' | 'output' | 'hidden'
@@ -55,12 +56,19 @@ export const describeNode = (id: number): NodeLabel => {
       detail: `Distance to the nearest asteroid ${bearing} (1.0 = clear)`
     }
   }
-  if (id < BRAIN_INPUTS) {
+  if (id < WHISKERS * 2) {
     const { range, bearing } = whiskerBearing(id - WHISKERS)
     return {
       kind: 'input',
       name: `${range} closing rate`,
       detail: `How fast that asteroid ${bearing} is approaching (+1 = rushing in, -1 = fleeing)`
+    }
+  }
+  if (id === WHISKERS * 2) {
+    return {
+      kind: 'input',
+      name: 'Ammo ready',
+      detail: 'Fraction of the 4-shot magazine available to fire (1 = full, 0 = empty)'
     }
   }
   if (id < BRAIN_INPUTS + BRAIN_OUTPUTS) {
