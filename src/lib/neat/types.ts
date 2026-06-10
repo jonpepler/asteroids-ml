@@ -54,7 +54,8 @@ export interface NeatConfig {
   compatibilityThreshold: number
   /* Target number of species the adaptive threshold steers toward. */
   targetSpecies: number
-  /* How much the threshold is nudged up or down each generation. */
+  /* Fraction the threshold moves each generation, applied multiplicatively
+     (e.g. 0.3 means x1.3 up or x0.7 down) so it adapts at any distance scale. */
   compatibilityThresholdStep: number
   /* Floor for the adaptive threshold so it can never collapse to zero. */
   minCompatibilityThreshold: number

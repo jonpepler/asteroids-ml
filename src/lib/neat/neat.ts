@@ -21,14 +21,17 @@ export const defaultConfig: Omit<NeatConfig, 'inputs' | 'outputs'> = {
   weightCoeff: 0.4,
   compatibilityThreshold: 3,
   targetSpecies: 12,
+  // Fraction the threshold moves per generation (multiplicative): x1.3 up, x0.7 down.
   compatibilityThresholdStep: 0.3,
   /*
-   * Low floor: weight-only differences in a converged population are small
-   * (weightCoeff 0.4 over a [-1, 1] range), so the threshold must be able to
-   * drop well below 1 to split the pack back into species. It self-regulates
-   * upward whenever the count overshoots targetSpecies, so a low floor is safe.
+   * Low floor: weight-only distances in a converged, densely connected network
+   * are tiny (weightCoeff 0.4 over a [-1, 1] range, averaged across ~100+
+   * connections), often ~0.01 to 0.05. The threshold must be able to drop into
+   * that range to split the pack into species at all; a higher floor leaves the
+   * controller pinned and stuck at one species. It self-regulates upward when
+   * the count overshoots targetSpecies, so a low floor is safe.
    */
-  minCompatibilityThreshold: 0.1,
+  minCompatibilityThreshold: 0.01,
   crossoverRate: 0.75,
   survivalThreshold: 0.3,
   speciesElitismMin: 5,
@@ -106,17 +109,20 @@ export class Neat {
   /*
    * Nudge the live compatibility threshold toward the target species count.
    * Raising the threshold merges similar genomes into fewer species; lowering
-   * it splits them into more. This keeps diversity alive when the population
-   * converges and avoids premature collapse to a single species.
+   * it splits them into more. The adjustment is multiplicative (a fraction of
+   * the current value, not a fixed amount) so the controller homes in on the
+   * right threshold whatever the distance scale: weight-only distances in a
+   * converged, densely connected network are tiny (~0.01 to 0.1), and a fixed
+   * additive step would just slam between far-too-high and the floor.
    */
   private adaptCompatibilityThreshold(): void {
     const { targetSpecies, compatibilityThresholdStep, minCompatibilityThreshold } = this.config
     if (this.species.length > targetSpecies) {
-      this.compatibilityThreshold += compatibilityThresholdStep
+      this.compatibilityThreshold *= 1 + compatibilityThresholdStep
     } else if (this.species.length < targetSpecies) {
       this.compatibilityThreshold = Math.max(
         minCompatibilityThreshold,
-        this.compatibilityThreshold - compatibilityThresholdStep
+        this.compatibilityThreshold * (1 - compatibilityThresholdStep)
       )
     }
   }
