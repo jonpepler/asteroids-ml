@@ -11,10 +11,15 @@ export interface TrainerConfig {
   keyMap: KeyMap
 }
 
-// Upper bound on evaluation workers. The actual count is clamped to the
-// machine's core count (less one, so the main thread can replay the champion at
-// 60fps); this cap only guards against an implausibly large reported count.
+// Upper bound on evaluation workers. The actual count is a share of the
+// machine's cores (see workerShare); this cap only guards against an
+// implausibly large reported core count.
 const maxWorkers = 16
+
+// Fraction of the machine's cores to spend on evaluation workers. Kept well
+// below 100% so the rest of the system (and the main thread replaying the
+// champion at 60fps) stays responsive rather than being starved.
+const workerShare = 0.6
 
 // How many random layouts each genome is scored on per generation; its fitness
 // is the average. More seeds means a cleaner, less luck-driven signal at a
@@ -106,7 +111,7 @@ export class Trainer {
       this.championScore = this.runner.best.score
     }
     const cores = navigator.hardwareConcurrency || 4
-    const size = Math.max(1, Math.min(maxWorkers, cores - 1))
+    const size = Math.max(1, Math.min(maxWorkers, Math.round(cores * workerShare)))
     this.pool = new WorkerPool(size)
   }
 
