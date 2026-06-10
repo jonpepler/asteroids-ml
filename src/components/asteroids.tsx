@@ -57,6 +57,10 @@ const Asteroids = (props: AsteroidsProps) => {
   const watchNetworkRef = useRef<Genome | null>(null)
   const pressedKeysRef = useRef<number[]>([])
   const scaleRef = useRef(1)
+  const brainExpandedRef = useRef(false)
+  /* Screen-space (game-coordinate) rect of the brain's size toggle button, set
+   * each frame in drawBrain so the click handler can hit-test it. */
+  const brainButtonRef = useRef<{ x: number; y: number; w: number; h: number } | null>(null)
   const speedRef = useRef(props.speed ?? 1)
   speedRef.current = props.speed ?? 1
   const onGenerationRef = useRef(props.onGeneration)
@@ -238,10 +242,11 @@ const Asteroids = (props: AsteroidsProps) => {
     const margin = 26
     const titleH = 28
     const pad = 16
+    const expanded = brainExpandedRef.current
     const scale = Math.min(
-      0.3,
-      (targetSize.w * 0.5) / (brainGraph.width || 1),
-      (targetSize.h * 0.46) / (brainGraph.height || 1)
+      expanded ? 1.2 : 0.6,
+      (targetSize.w * (expanded ? 0.9 : 0.55)) / (brainGraph.width || 1),
+      (targetSize.h * (expanded ? 0.82 : 0.6)) / (brainGraph.height || 1)
     )
     const diagramW = brainGraph.width * scale
     const diagramH = brainGraph.height * scale
@@ -268,6 +273,24 @@ const Asteroids = (props: AsteroidsProps) => {
     p5.textSize(14)
     p5.textAlign(p5.LEFT, p5.CENTER)
     p5.text('CHAMPION BRAIN', panelX + pad, panelY + titleH / 2 + 2)
+
+    /* Size-toggle button: small square at the top-right of the panel.
+     * Draws a geometric +/- icon so it renders on any font. */
+    const btnSize = 18
+    const btnX = panelX + panelW - btnSize - 10
+    const btnY = panelY + (titleH - btnSize) / 2 + 2
+    brainButtonRef.current = { x: btnX, y: btnY, w: btnSize, h: btnSize }
+    const overButton =
+      mouseX >= btnX && mouseX <= btnX + btnSize && mouseY >= btnY && mouseY <= btnY + btnSize
+    p5.noFill()
+    p5.stroke(overButton ? 230 : 110, overButton ? 230 : 120, overButton ? 240 : 140)
+    p5.strokeWeight(1.5)
+    p5.rect(btnX, btnY, btnSize, btnSize, 4)
+    const cx = btnX + btnSize / 2
+    const cy = btnY + btnSize / 2
+    const arm = btnSize * 0.28
+    p5.line(cx - arm, cy, cx + arm, cy) // horizontal bar (always present)
+    if (!brainExpandedRef.current) p5.line(cx, cy - arm, cx, cy + arm) // vertical bar -> plus
     p5.pop()
 
     p5.push()
@@ -469,6 +492,18 @@ const Asteroids = (props: AsteroidsProps) => {
     }
   }
 
+  const mouseClicked = (p5: P5) => {
+    if (!isTrainMode) return
+    const btn = brainButtonRef.current
+    if (!btn) return
+    const canvasScale = scaleRef.current || 1
+    const x = p5.mouseX / canvasScale
+    const y = p5.mouseY / canvasScale
+    if (x >= btn.x && x <= btn.x + btn.w && y >= btn.y && y <= btn.y + btn.h) {
+      brainExpandedRef.current = !brainExpandedRef.current
+    }
+  }
+
   return (
     <div className={containerName} ref={containerEl}>
       {!isWatchMode && <AstroBanner />}
@@ -480,6 +515,7 @@ const Asteroids = (props: AsteroidsProps) => {
           windowResized={windowResized}
           keyPressed={keyPressed}
           keyReleased={keyReleased}
+          mouseClicked={mouseClicked}
         />
       </Suspense>
       {!isWatchMode && <AstroFooter />}
