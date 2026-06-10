@@ -13,6 +13,9 @@ const speed = 10
 
 class Bullet extends TempObject {
   ship: Ship
+  // Set when this bullet strikes something, so a bullet that ages out without
+  // ever hitting can be told apart from one that scored. Used for fitness only.
+  hitTarget = false
 
   constructor(ship: Ship, delta: { dx: number; dy: number }) {
     super(...ship.getShipTip(), ship.r)
@@ -22,6 +25,11 @@ class Bullet extends TempObject {
     // launch vector
     const { dx, dy } = delta
     this.addDelta({ x: speed * dx, y: speed * dy })
+  }
+
+  hit() {
+    this.hitTarget = true
+    super.hit()
   }
 
   // special case where bullets need to be positioned considering that

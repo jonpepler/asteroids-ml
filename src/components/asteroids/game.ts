@@ -1,40 +1,43 @@
-import type { KeyMap } from '../../services/defaults'
-import type AstroObject from './astro-object'
-import Asteroid from './objects/asteroid'
-import type Bullet from './objects/bullet'
-import Ship from './objects/ship'
-import StarMap from './star-map'
-import { bonusAsteroidsForScore, makeAsteroids } from './util/asteroid-generator'
+import type { KeyMap } from "../../services/defaults";
+import type AstroObject from "./astro-object";
+import Asteroid from "./objects/asteroid";
+import type Bullet from "./objects/bullet";
+import Ship from "./objects/ship";
+import StarMap from "./star-map";
+import {
+  bonusAsteroidsForScore,
+  makeAsteroids,
+} from "./util/asteroid-generator";
 import {
   type GameSize,
   type Line,
   type RandomFn,
   closestPoint,
   distanceBetweenPoints,
-  getDirectionVector
-} from './util/geometry'
+  getDirectionVector,
+} from "./util/geometry";
 
-export type GameStatus = 'init' | 'running' | 'lost'
+export type GameStatus = "init" | "running" | "lost";
 
 export interface SensePoint {
-  line: number
-  point: number[]
+  line: number;
+  point: number[];
 }
 
 export interface Sense {
-  lines: Line[]
-  input: SensePoint | undefined
-  value: number
+  lines: Line[];
+  input: SensePoint | undefined;
+  value: number;
 }
 
-const asteroidKillScore = 10
+const asteroidKillScore = 10;
 
 /*
  * Ticks-to-seconds: the live game runs at 60fps and headless training steps at
  * the same rate, so one second is 60 ticks everywhere. The survival curve and
  * episode length below are written in seconds and converted through this.
  */
-const ticksPerSecond = 60
+const ticksPerSecond = 60;
 
 /*
  * Fitness shaping: an uncapped per-tick survival reward whose rate decays over
@@ -43,19 +46,19 @@ const ticksPerSecond = 60
  * farm a flat rate forever. The rate runs from survivalStartRate down to
  * survivalEndRate across the full episode, interpolated geometrically.
  */
-const survivalStartRate = 10 // points per second at the start of an episode
-const survivalEndRate = 0.05 // points per second by the episode time limit
-const episodeTimeLimitSeconds = 600 // 10 minutes; also the safety timeout
-const episodeTickLimit = episodeTimeLimitSeconds * ticksPerSecond
+const survivalStartRate = 10; // points per second at the start of an episode
+const survivalEndRate = 0.05; // points per second by the episode time limit
+const episodeTimeLimitSeconds = 600; // 10 minutes; also the safety timeout
+const episodeTickLimit = episodeTimeLimitSeconds * ticksPerSecond;
 
 /*
  * Surviving all the way to the time limit is near-impossible against the
  * escalating asteroid field, so it earns a large one-off bonus: a clear target
  * for genuine mastery rather than the dull "camp and spray" local optimum.
  */
-const survivalCompletionBonus = 500
+const survivalCompletionBonus = 500;
 
-const fireLimiter = 3
+const fireLimiter = 3;
 
 /*
  * A small training-only fitness cost per shot fired. Discourages the dull
@@ -63,14 +66,14 @@ const fireLimiter = 3
  * asteroidKillScore (10), so destroying an asteroid stays hugely net positive
  * while spraying that hits nothing slowly bleeds fitness.
  */
-const firePenalty = 0.15
+const firePenalty = 0.15;
 
 /*
  * The game is endless (no win): a fresh full-size asteroid is spawned whenever
  * the field is down to one or zero "big" ones, so there is always something
  * substantial to engage. Children from splitting fall below this size.
  */
-const bigAsteroidSize = 150
+const bigAsteroidSize = 150;
 
 /*
  * Steady, skill-independent pressure: a fresh asteroid arrives on a fixed tick
@@ -78,26 +81,26 @@ const bigAsteroidSize = 150
  * so even a flawless dodger is eventually overwhelmed. Measured in ticks, not
  * wall-clock, so it behaves identically in headless training.
  */
-const timedSpawnIntervalTicks = 600
+const timedSpawnIntervalTicks = 600;
 
 export interface GameConfig {
-  targetSize: GameSize
-  keyMap: KeyMap
+  targetSize: GameSize;
+  keyMap: KeyMap;
   /*
    * When true, apply training-only mechanics (survival reward, firing cost,
    * episode timeout) and emit fitness events.
    */
-  training: boolean
+  training: boolean;
   /*
    * Receives fitness events (kills, survival, firing cost) for the trainer to
    * attribute to the genome under evaluation. Unused in play mode.
    */
-  onScore?: (amount: number) => void
+  onScore?: (amount: number) => void;
   /*
    * Source of randomness for asteroid spawns. Defaults to Math.random; headless
    * training passes a seeded generator so a generation's genomes share a layout.
    */
-  random?: RandomFn
+  random?: RandomFn;
 }
 
 // The pure Asteroids simulation: no p5, no React, no trainer. `step(keys)`
@@ -105,127 +108,136 @@ export interface GameConfig {
 // by a neural net (training) or a keyboard (play), and run faster than the
 // frame rate or off the main thread.
 export class GameInstance {
-  targetSize: GameSize
-  keyMap: KeyMap
-  training: boolean
-  onScore?: (amount: number) => void
-  random: RandomFn
+  targetSize: GameSize;
+  keyMap: KeyMap;
+  training: boolean;
+  onScore?: (amount: number) => void;
+  random: RandomFn;
 
-  ship!: Ship
-  asteroids!: Asteroid[]
-  bullets!: Bullet[]
-  starMap!: StarMap
-  senses: Sense[] = []
-  score = 0
-  status: GameStatus = 'init'
-  runTicks = 0
-  private fireCount = 0
-  private bonusAsteroidsSpawned = 0
+  ship!: Ship;
+  asteroids!: Asteroid[];
+  bullets!: Bullet[];
+  starMap!: StarMap;
+  senses: Sense[] = [];
+  score = 0;
+  status: GameStatus = "init";
+  runTicks = 0;
+  private fireCount = 0;
+  private bonusAsteroidsSpawned = 0;
 
   constructor(config: GameConfig) {
-    this.targetSize = config.targetSize
-    this.keyMap = config.keyMap
-    this.training = config.training
-    this.onScore = config.onScore
-    this.random = config.random ?? Math.random
-    this.reset()
+    this.targetSize = config.targetSize;
+    this.keyMap = config.keyMap;
+    this.training = config.training;
+    this.onScore = config.onScore;
+    this.random = config.random ?? Math.random;
+    this.reset();
   }
 
   reset() {
-    this.ship = new Ship(this.targetSize.w / 2, this.targetSize.h / 2)
-    this.asteroids = makeAsteroids(this.targetSize, this.ship, this.random)
-    this.bullets = []
-    this.starMap = StarMap.generate(this.targetSize.w, this.targetSize.h)
-    this.senses = []
-    this.score = 0
-    this.runTicks = 0
-    this.fireCount = 0
-    this.bonusAsteroidsSpawned = 0
-    this.status = 'running'
+    this.ship = new Ship(this.targetSize.w / 2, this.targetSize.h / 2);
+    this.asteroids = makeAsteroids(this.targetSize, this.ship, this.random);
+    this.bullets = [];
+    this.starMap = StarMap.generate(this.targetSize.w, this.targetSize.h);
+    this.senses = [];
+    this.score = 0;
+    this.runTicks = 0;
+    this.fireCount = 0;
+    this.bonusAsteroidsSpawned = 0;
+    this.status = "running";
   }
 
   step(keys: number[]) {
-    if (this.status !== 'running') return
+    if (this.status !== "running") return;
     // Count every tick in every mode (the timed asteroid spawn and the training
     // timeout both key off this).
-    this.runTicks++
-    this.reportKeysToShip(keys)
-    this.updateObjects([this.ship], this.asteroids, this.bullets)
-    this.checkCollisions(this.asteroids, this.bullets)
-    this.checkCollisions([this.ship], this.bullets)
-    this.checkCollisions([this.ship], this.asteroids)
-    this.bullets = this.bullets.filter((obj) => !obj.old)
-    this.updateAsteroids()
-    if (this.training) this.applyTrainingRewards()
-    this.testLose()
+    this.runTicks++;
+    this.reportKeysToShip(keys);
+    this.updateObjects([this.ship], this.asteroids, this.bullets);
+    this.checkCollisions(this.asteroids, this.bullets);
+    this.checkCollisions([this.ship], this.bullets);
+    this.checkCollisions([this.ship], this.asteroids);
+    if (this.training) {
+      this.onScore?.(
+        this.bullets.filter((obj) => obj.old && !obj.hitTarget).length,
+      );
+    }
+    this.bullets = this.bullets.filter((obj) => !obj.old);
+    this.updateAsteroids();
+    if (this.training) this.applyTrainingRewards();
+    this.testLose();
   }
 
   private applyTrainingRewards() {
-    const elapsedSeconds = this.runTicks / ticksPerSecond
+    const elapsedSeconds = this.runTicks / ticksPerSecond;
     /*
      * Geometric decay from survivalStartRate to survivalEndRate across the
      * episode: rate = start * (end / start) ** (elapsed / limit).
      */
     const decay =
-      (survivalEndRate / survivalStartRate) ** (elapsedSeconds / episodeTimeLimitSeconds)
-    this.onScore?.((survivalStartRate * decay) / ticksPerSecond)
+      (survivalEndRate / survivalStartRate) **
+      (elapsedSeconds / episodeTimeLimitSeconds);
+    this.onScore?.((survivalStartRate * decay) / ticksPerSecond);
     /*
      * Safety timeout doubling as the mastery goal: a genome that lasts the whole
      * episode is sent off through the normal loss path with a big bonus, so a
      * hypothetical un-killable genome still can't stall the generation.
      */
     if (this.runTicks >= episodeTickLimit && !this.ship.old) {
-      this.onScore?.(survivalCompletionBonus)
-      this.ship.cleanup()
+      this.onScore?.(survivalCompletionBonus);
+      this.ship.cleanup();
     }
   }
 
   private testLose() {
-    if (this.status === 'running' && this.ship.old) {
-      this.status = 'lost'
+    if (this.status === "running" && this.ship.old) {
+      this.status = "lost";
     }
   }
 
   private updateObjects(...objectLists: AstroObject[][]) {
     for (const objects of objectLists) {
       for (const element of objects) {
-        element.applyDelta(this.targetSize.w, this.targetSize.h)
+        element.applyDelta(this.targetSize.w, this.targetSize.h);
       }
     }
   }
 
   private checkCollisions(objects: AstroObject[], hittables: AstroObject[]) {
     for (const obj of objects) {
-      for (const hittable of hittables) obj.isHit(hittable)
+      for (const hittable of hittables) obj.isHit(hittable);
     }
   }
 
   private updateAsteroids() {
-    const newAsteroids: Asteroid[] = []
-    const asteroidsToSplice: number[] = []
+    const newAsteroids: Asteroid[] = [];
+    const asteroidsToSplice: number[] = [];
     this.asteroids.forEach((obj, i) => {
       if (obj.old) {
-        newAsteroids.push(...obj.spawnChildren(this.random))
-        asteroidsToSplice.push(i)
-        this.onScore?.(asteroidKillScore)
-        this.score += asteroidKillScore
+        newAsteroids.push(...obj.spawnChildren(this.random));
+        asteroidsToSplice.push(i);
+        this.onScore?.(asteroidKillScore);
+        this.score += asteroidKillScore;
       }
-    })
-    asteroidsToSplice.forEach((index) => this.asteroids.splice(index, 1))
-    this.asteroids.push(...newAsteroids)
+    });
+    asteroidsToSplice.forEach((index) => this.asteroids.splice(index, 1));
+    this.asteroids.push(...newAsteroids);
 
     // Keep a big asteroid in play: once down to one or zero, send in a fresh one.
-    const bigCount = this.asteroids.filter((a) => a.size >= bigAsteroidSize).length
-    if (bigCount <= 1) this.spawnCornerAsteroid()
+    const bigCount = this.asteroids.filter(
+      (a) => a.size >= bigAsteroidSize,
+    ).length;
+    if (bigCount <= 1) this.spawnCornerAsteroid();
 
     // Steady time pressure on top of the score spawns.
-    if (this.runTicks % timedSpawnIntervalTicks === 0) this.spawnCornerAsteroid()
+    if (this.runTicks % timedSpawnIntervalTicks === 0)
+      this.spawnCornerAsteroid();
 
     // Escalate endlessly: one extra asteroid per 100 points, each spawned once.
-    const bonusDue = bonusAsteroidsForScore(this.score)
+    const bonusDue = bonusAsteroidsForScore(this.score);
     while (this.bonusAsteroidsSpawned < bonusDue) {
-      this.spawnCornerAsteroid()
-      this.bonusAsteroidsSpawned++
+      this.spawnCornerAsteroid();
+      this.bonusAsteroidsSpawned++;
     }
   }
 
@@ -234,33 +246,33 @@ export class GameInstance {
       new Asteroid(0, 0)
         .withRandomShape(this.random)
         .withRandomCorner(this.targetSize.w, this.targetSize.h, this.random)
-        .withRandomDelta(this.random)
-    )
+        .withRandomDelta(this.random),
+    );
   }
 
   private reportKeysToShip(keys: number[]) {
-    const { keyMap } = this
+    const { keyMap } = this;
     for (const key of keys) {
       switch (key) {
         case keyMap.shoot:
           if (this.fireCount > fireLimiter) {
-            this.bullets.push(this.ship.shoot())
-            this.fireCount = 0
+            this.bullets.push(this.ship.shoot());
+            this.fireCount = 0;
             // Training-only cost; leaves the player's HUD score untouched.
-            if (this.training) this.onScore?.(-firePenalty)
+            if (this.training) this.onScore?.(-firePenalty);
           } else {
-            this.fireCount++
+            this.fireCount++;
           }
-          break
+          break;
         case keyMap.rotateLeft:
-          this.ship.rotateLeft()
-          break
+          this.ship.rotateLeft();
+          break;
         case keyMap.boost:
-          this.starMap.applyTravelFeel(this.ship.moveUp())
-          break
+          this.starMap.applyTravelFeel(this.ship.moveUp());
+          break;
         case keyMap.rotateRight:
-          this.ship.rotateRight()
-          break
+          this.ship.rotateRight();
+          break;
       }
     }
   }
@@ -269,146 +281,172 @@ export class GameInstance {
   // per whisker, how close the nearest asteroid is (1 = nothing seen). Also
   // records the ray geometry in `this.senses` for the overlay.
   generateBrainInput(): number[] {
-    const whiskers = 8
-    const longLength = 500
-    const shortLength = 200
-    const { targetSize, ship, asteroids } = this
-    const whiskerPoints: Line[][] = []
+    const whiskers = 8;
+    const longLength = 500;
+    const shortLength = 200;
+    const { targetSize, ship, asteroids } = this;
+    const whiskerPoints: Line[][] = [];
     const makeWhiskers = (num: number, length: number, offset: number) => {
       for (let i = 0; i < num; i++) {
-        const line: Line[] = []
-        const angle = ship.r + offset + (360 / num) * i
-        let startPoint: number[] = ship.getPointOnEdgeOfShip(angle)
-        const angleVector = getDirectionVector(angle)
-        const boundOffset = ship.getOffset()
+        const line: Line[] = [];
+        const angle = ship.r + offset + (360 / num) * i;
+        let startPoint: number[] = ship.getPointOnEdgeOfShip(angle);
+        const angleVector = getDirectionVector(angle);
+        const boundOffset = ship.getOffset();
 
-        let endPoint: number[] = []
+        let endPoint: number[] = [];
         const recalcEndPoint = () => {
           endPoint = [
             startPoint[0] + angleVector[0] * length,
-            startPoint[1] + angleVector[1] * length
-          ]
-        }
-        recalcEndPoint()
-        let isNormalLine = true
+            startPoint[1] + angleVector[1] * length,
+          ];
+        };
+        recalcEndPoint();
+        let isNormalLine = true;
         if (startPoint[0] > targetSize.w + boundOffset) {
-          startPoint = [startPoint[0] - targetSize.w - boundOffset * 2, startPoint[1]]
-          recalcEndPoint()
+          startPoint = [
+            startPoint[0] - targetSize.w - boundOffset * 2,
+            startPoint[1],
+          ];
+          recalcEndPoint();
         } else {
           if (endPoint[0] > targetSize.w + boundOffset) {
-            isNormalLine = false
-            const boundXOver = endPoint[0] - targetSize.w - boundOffset
-            const lengthOver = boundXOver / angleVector[0]
-            const yOver = angleVector[1] * lengthOver
-            const yUnder = angleVector[1] * (length - lengthOver)
-            line.push([startPoint, [targetSize.w + boundOffset, startPoint[1] + yUnder]])
+            isNormalLine = false;
+            const boundXOver = endPoint[0] - targetSize.w - boundOffset;
+            const lengthOver = boundXOver / angleVector[0];
+            const yOver = angleVector[1] * lengthOver;
+            const yUnder = angleVector[1] * (length - lengthOver);
+            line.push([
+              startPoint,
+              [targetSize.w + boundOffset, startPoint[1] + yUnder],
+            ]);
             line.push([
               [-boundOffset, startPoint[1] + yUnder],
-              [boundXOver - boundOffset, startPoint[1] + yUnder + yOver]
-            ])
+              [boundXOver - boundOffset, startPoint[1] + yUnder + yOver],
+            ]);
           }
         }
         if (startPoint[0] < -boundOffset) {
-          startPoint = [startPoint[0] + targetSize.w + boundOffset * 2, startPoint[1]]
-          recalcEndPoint()
+          startPoint = [
+            startPoint[0] + targetSize.w + boundOffset * 2,
+            startPoint[1],
+          ];
+          recalcEndPoint();
         } else {
           if (endPoint[0] < -boundOffset) {
-            isNormalLine = false
-            const boundXUnder = endPoint[0] + boundOffset
-            const lengthOver = boundXUnder / angleVector[0]
-            const yOver = angleVector[1] * lengthOver
-            const yUnder = angleVector[1] * (length - lengthOver)
-            line.push([startPoint, [-boundOffset, startPoint[1] + yUnder]])
+            isNormalLine = false;
+            const boundXUnder = endPoint[0] + boundOffset;
+            const lengthOver = boundXUnder / angleVector[0];
+            const yOver = angleVector[1] * lengthOver;
+            const yUnder = angleVector[1] * (length - lengthOver);
+            line.push([startPoint, [-boundOffset, startPoint[1] + yUnder]]);
             line.push([
               [targetSize.w + boundOffset, startPoint[1] + yUnder],
-              [targetSize.w + boundXUnder + boundOffset, startPoint[1] + yUnder + yOver]
-            ])
+              [
+                targetSize.w + boundXUnder + boundOffset,
+                startPoint[1] + yUnder + yOver,
+              ],
+            ]);
           }
         }
         if (startPoint[1] > targetSize.h + boundOffset) {
-          startPoint = [startPoint[0], startPoint[1] - targetSize.h - boundOffset * 2]
-          recalcEndPoint()
+          startPoint = [
+            startPoint[0],
+            startPoint[1] - targetSize.h - boundOffset * 2,
+          ];
+          recalcEndPoint();
         } else {
           if (endPoint[1] > targetSize.h + boundOffset) {
-            isNormalLine = false
-            const boundYOver = endPoint[1] - targetSize.h - boundOffset
-            const lengthOver = boundYOver / angleVector[1]
-            const xOver = angleVector[0] * lengthOver
-            const xUnder = angleVector[0] * (length - lengthOver)
-            line.push([startPoint, [startPoint[0] + xUnder, targetSize.h + boundOffset]])
+            isNormalLine = false;
+            const boundYOver = endPoint[1] - targetSize.h - boundOffset;
+            const lengthOver = boundYOver / angleVector[1];
+            const xOver = angleVector[0] * lengthOver;
+            const xUnder = angleVector[0] * (length - lengthOver);
+            line.push([
+              startPoint,
+              [startPoint[0] + xUnder, targetSize.h + boundOffset],
+            ]);
             line.push([
               [startPoint[0] + xUnder, -boundOffset],
-              [startPoint[0] + xUnder + xOver, boundYOver - boundOffset]
-            ])
+              [startPoint[0] + xUnder + xOver, boundYOver - boundOffset],
+            ]);
           }
         }
         if (startPoint[1] < -boundOffset) {
-          startPoint = [startPoint[0], startPoint[1] + targetSize.h + boundOffset * 2]
-          recalcEndPoint()
+          startPoint = [
+            startPoint[0],
+            startPoint[1] + targetSize.h + boundOffset * 2,
+          ];
+          recalcEndPoint();
         } else {
           if (endPoint[1] < -boundOffset) {
-            isNormalLine = false
-            const boundYUnder = endPoint[1] + boundOffset
-            const lengthOver = boundYUnder / angleVector[1]
-            const xOver = angleVector[0] * lengthOver
-            const xUnder = angleVector[0] * (length - lengthOver)
-            line.push([startPoint, [startPoint[0] + xUnder, -boundOffset]])
+            isNormalLine = false;
+            const boundYUnder = endPoint[1] + boundOffset;
+            const lengthOver = boundYUnder / angleVector[1];
+            const xOver = angleVector[0] * lengthOver;
+            const xUnder = angleVector[0] * (length - lengthOver);
+            line.push([startPoint, [startPoint[0] + xUnder, -boundOffset]]);
             line.push([
               [startPoint[0] + xUnder, targetSize.h + boundOffset],
-              [startPoint[0] + xUnder + xOver, targetSize.h + boundYUnder + boundOffset]
-            ])
+              [
+                startPoint[0] + xUnder + xOver,
+                targetSize.h + boundYUnder + boundOffset,
+              ],
+            ]);
           }
         }
         if (isNormalLine) {
-          line.push([startPoint, endPoint])
+          line.push([startPoint, endPoint]);
         }
-        whiskerPoints.push(line)
+        whiskerPoints.push(line);
       }
-    }
-    makeWhiskers(whiskers, longLength, 0)
-    makeWhiskers(whiskers, shortLength, 360 / whiskers / 2)
+    };
+    makeWhiskers(whiskers, longLength, 0);
+    makeWhiskers(whiskers, shortLength, 360 / whiskers / 2);
 
-    const arraysWithElementsOnly = (arr: number[]) => arr.length !== 0
+    const arraysWithElementsOnly = (arr: number[]) => arr.length !== 0;
     const sensePoint = (sense: Line[]): SensePoint | undefined => {
       // use old school loop so we can break early
       for (let i = 0; i < sense.length; i++) {
         const point = closestPoint(
           sense[i][0],
-          asteroids.flatMap((a) => a.crossedByLine(sense[i])).filter(arraysWithElementsOnly)
-        )
-        if (point.length !== 0) return { line: i, point }
+          asteroids
+            .flatMap((a) => a.crossedByLine(sense[i]))
+            .filter(arraysWithElementsOnly),
+        );
+        if (point.length !== 0) return { line: i, point };
       }
-      return undefined
-    }
+      return undefined;
+    };
     this.senses = whiskerPoints.map((sense) => {
       // get coords and line index of intersection point
-      const input = sensePoint(sense)
-      let value = 1
+      const input = sensePoint(sense);
+      let value = 1;
       if (input) {
-        let length = 0
+        let length = 0;
 
         // measure length up to the line with the sense point
         for (let i = 0; i < input.line; i++) {
-          length += distanceBetweenPoints(sense[i][0], sense[i][1])
+          length += distanceBetweenPoints(sense[i][0], sense[i][1]);
         }
 
-        let fullLength = length
+        let fullLength = length;
         // add the length of the next line up to the sense point
-        length += distanceBetweenPoints(sense[input.line][0], input.point)
+        length += distanceBetweenPoints(sense[input.line][0], input.point);
 
         // measure the rest of the full length of the line (could use whiskerLength)
         for (let i = input.line; i < sense.length; i++) {
-          fullLength += distanceBetweenPoints(sense[i][0], sense[i][1])
+          fullLength += distanceBetweenPoints(sense[i][0], sense[i][1]);
         }
-        value = length / fullLength
+        value = length / fullLength;
       }
       return {
         lines: sense,
         // record which line part hit an astroid, for logging and display reasons
         input,
-        value
-      }
-    })
-    return this.senses.map((sense) => sense.value)
+        value,
+      };
+    });
+    return this.senses.map((sense) => sense.value);
   }
 }
