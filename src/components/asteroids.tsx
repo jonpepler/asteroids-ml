@@ -195,7 +195,7 @@ const Asteroids = (props: AsteroidsProps) => {
     p5.textSize(18)
     p5.textAlign(p5.LEFT)
     p5.text(
-      `Champion of generation ${trainer.generation} (best ${champion}), training on ${trainer.workerCount} workers`,
+      `Champion of generation ${trainer.generation} (best ${champion}, ${trainer.generationsSinceBest} gens ago) · ${trainer.speciesCount} species · training on ${trainer.workerCount} workers`,
       28,
       targetSize.h - 40
     )

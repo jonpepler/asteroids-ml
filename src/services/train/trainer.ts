@@ -119,6 +119,19 @@ export class Trainer {
     return this.runner.neat.generation
   }
 
+  get speciesCount(): number {
+    return this.runner.neat.species.length
+  }
+
+  /*
+   * Generations since the all-time best score last improved. A large value means
+   * the run has stalled and is a cue that diversity or scoring may need attention.
+   */
+  get generationsSinceBest(): number {
+    const best = this.runner.best
+    return best ? Math.max(0, this.generation - best.gen) : 0
+  }
+
   get workerCount() {
     return this.pool?.size ?? 0
   }
