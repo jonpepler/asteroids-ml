@@ -98,11 +98,11 @@ const bigAsteroidSize = 150
 
 /*
  * Steady, skill-independent pressure: a fresh asteroid arrives on a fixed tick
- * cadence (roughly every 10 seconds at 60fps) on top of the score-based spawns,
+ * cadence (roughly every 7 seconds at 60fps) on top of the score-based spawns,
  * so even a flawless dodger is eventually overwhelmed. Measured in ticks, not
  * wall-clock, so it behaves identically in headless training.
  */
-const timedSpawnIntervalTicks = 600
+const timedSpawnIntervalTicks = 420
 
 export interface GameConfig {
   targetSize: GameSize
@@ -259,9 +259,10 @@ export class GameInstance {
     this.asteroids = this.asteroids.filter((obj) => !obj.old)
     this.asteroids.push(...newAsteroids)
 
-    // Keep a big asteroid in play: once down to one or zero, send in a fresh one.
+    /* Keep roughly three big asteroids in play: top up whenever two or fewer
+     * remain, since each big one splits into smaller fragments on destruction. */
     const bigCount = this.asteroids.filter((a) => a.size >= bigAsteroidSize).length
-    if (bigCount <= 1) this.spawnCornerAsteroid()
+    if (bigCount <= 2) this.spawnCornerAsteroid()
 
     // Steady time pressure on top of the score spawns.
     if (this.runTicks % timedSpawnIntervalTicks === 0) this.spawnCornerAsteroid()

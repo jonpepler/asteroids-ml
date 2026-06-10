@@ -40,7 +40,7 @@ export const makeAsteroids = (
   shipInfo: Ship,
   random: RandomFn = Math.random
 ): Asteroid[] => {
-  const num = 4 + random() * 3
+  const num = 6 + random() * 3
   return Array.from({ length: num }).map(() => {
     const [x, y] = randomCoords(gameSize, shipInfo, random)
     return new Asteroid(x, y).withRandom(random)
