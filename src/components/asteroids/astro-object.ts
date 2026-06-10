@@ -109,6 +109,7 @@ class AstroObject {
    * maths in the same order, just not repeated.
    */
   private cachedPolygon: Polygon | null = null
+  private cachedRadius = 0
   private cacheX = Number.NaN
   private cacheY = Number.NaN
   private cacheR = Number.NaN
@@ -135,6 +136,21 @@ class AstroObject {
         .scale([this.size, this.size])
         .translate([this.x, this.y])
         .rotate(asRadians(this.r))
+      /*
+       * Bounding radius about (x, y): the farthest transformed vertex. The
+       * circle it defines contains the whole polygon, so two objects whose
+       * circles do not overlap cannot intersect. Measured from the actual
+       * transformed vertices, so it is correct whatever point the rotation is
+       * centred on, and never under-estimates (which would drop a real hit).
+       */
+      let maxSq = 0
+      for (const [vx, vy] of this.cachedPolygon.toArray()) {
+        const dx = vx - this.x
+        const dy = vy - this.y
+        const distSq = dx * dx + dy * dy
+        if (distSq > maxSq) maxSq = distSq
+      }
+      this.cachedRadius = Math.sqrt(maxSq)
       this.cacheX = this.x
       this.cacheY = this.y
       this.cacheR = this.r
@@ -144,11 +160,23 @@ class AstroObject {
     return this.cachedPolygon
   }
 
+  boundingRadius(): number {
+    this.getTransformedPolygon()
+    return this.cachedRadius
+  }
+
   crossedByLine(line: Line): number[][] {
     return lineCrossesPolygon(line, this.getTransformedPolygon()).filter((res) => res.length !== 0)
   }
 
   isHit(hittable: AstroObject): boolean {
+    // Broad phase: skip the full polygon test when the bounding circles are too
+    // far apart to overlap. Conservative, so the exact result is unchanged.
+    const dx = this.x - hittable.x
+    const dy = this.y - hittable.y
+    const reach = this.boundingRadius() + hittable.boundingRadius()
+    if (dx * dx + dy * dy > reach * reach) return false
+
     const shape = this.getTransformedPolygon()
     const hShape = hittable.getTransformedPolygon()
     const hit = polygonsIntersect(shape, hShape)
