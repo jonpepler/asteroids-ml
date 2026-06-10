@@ -5,7 +5,12 @@ const minSize = 50
 
 class Asteroid extends AstroObject {
   timesHit = 0
-  health = 3
+  /*
+   * Hits needed to destroy this asteroid. One, like the arcade original: a shot
+   * splits it into children (see spawnChildren) rather than chipping a health
+   * bar. A higher value would make shooting a poor investment for the trainer.
+   */
+  health = 1
 
   constructor(x: number, y: number) {
     super(x, y, 0)
@@ -75,7 +80,7 @@ class Asteroid extends AstroObject {
 
   hit() {
     this.timesHit++
-    if (this.timesHit > this.health) this.cleanup()
+    if (this.timesHit >= this.health) this.cleanup()
   }
 }
 
