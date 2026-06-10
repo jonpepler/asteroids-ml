@@ -82,6 +82,16 @@ const firePenalty = 0.15
 const missPenalty = 1
 
 /*
+ * Training-only anti-camp rule: the ship must move at least minMoveDistance
+ * (toroidal) away from a rolling anchor within every moveWindowTicks, or it
+ * loses. Gating on displacement (not thrust input) means feathering the thrust
+ * in place does not satisfy it: a camper has to actively fight the lack of
+ * friction to stay put, and now that gets it killed.
+ */
+const minMoveDistance = 250
+const moveWindowTicks = 10 * ticksPerSecond // 10 seconds
+
+/*
  * Normaliser for the per-whisker closing-rate sensor. Asteroid velocity
  * components run to about +/-2.8 px/tick and the ship can add some drift, so
  * dividing the projected approach speed by this and clamping to [-1, 1] keeps
@@ -145,6 +155,9 @@ export class GameInstance {
   runTicks = 0
   private fireCount = 0
   private bonusAsteroidsSpawned = 0
+  private moveAnchorX = 0
+  private moveAnchorY = 0
+  private ticksSinceMoved = 0
 
   constructor(config: GameConfig) {
     this.targetSize = config.targetSize
@@ -165,6 +178,9 @@ export class GameInstance {
     this.runTicks = 0
     this.fireCount = 0
     this.bonusAsteroidsSpawned = 0
+    this.moveAnchorX = this.ship.x
+    this.moveAnchorY = this.ship.y
+    this.ticksSinceMoved = 0
     this.status = 'running'
   }
 
@@ -201,6 +217,7 @@ export class GameInstance {
     this.bullets = this.bullets.filter((obj) => !obj.old)
     this.updateAsteroids()
     if (this.training) this.applyTrainingRewards()
+    if (this.training) this.enforceMovement()
     this.testLose()
   }
 
@@ -221,6 +238,36 @@ export class GameInstance {
     if (this.runTicks >= episodeTickLimit && !this.ship.old) {
       this.onScore?.(survivalCompletionBonus)
       this.ship.cleanup()
+    }
+  }
+
+  /*
+   * Kill the ship if it has not relocated minMoveDistance from its anchor within
+   * moveWindowTicks. Each time it does move that far, the anchor follows it and
+   * the timer resets, so a genuinely roaming ship is never at risk. Toroidal so
+   * wrapping across a screen edge cannot be used to fake movement.
+   */
+  private enforceMovement(): void {
+    if (this.ship.old) return
+    const dx = Math.abs(this.ship.x - this.moveAnchorX)
+    const dy = Math.abs(this.ship.y - this.moveAnchorY)
+    /*
+     * The ship wraps with a margin of ship.getOffset() on each side, so the
+     * true toroidal period is targetSize + 2 * offset, not targetSize. Using
+     * targetSize alone makes the toroidal distance negative near the wrap
+     * boundary and defeats the check for a ship drifting across an edge.
+     */
+    const wrapW = this.targetSize.w + this.ship.getOffset() * 2
+    const wrapH = this.targetSize.h + this.ship.getOffset() * 2
+    const wrappedDx = Math.min(dx, wrapW - dx)
+    const wrappedDy = Math.min(dy, wrapH - dy)
+    if (wrappedDx * wrappedDx + wrappedDy * wrappedDy >= minMoveDistance * minMoveDistance) {
+      this.moveAnchorX = this.ship.x
+      this.moveAnchorY = this.ship.y
+      this.ticksSinceMoved = 0
+    } else {
+      this.ticksSinceMoved++
+      if (this.ticksSinceMoved > moveWindowTicks) this.ship.cleanup()
     }
   }
 

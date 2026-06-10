@@ -230,6 +230,40 @@ describe('GameInstance asteroid removal', () => {
   })
 })
 
+describe('GameInstance movement rule', () => {
+  it('kills a stationary training ship once the window passes', () => {
+    const game = new GameInstance({ targetSize, keyMap, training: true })
+    /* Clear asteroids before each step so respawning logic cannot introduce
+     * collisions that confound the anti-camp rule under test. */
+    for (let i = 0; i < 11 * 60 && game.status === 'running'; i++) {
+      game.asteroids = []
+      game.step([])
+    }
+    expect(game.status).toBe('lost')
+  })
+
+  it('does not kill a training ship that keeps relocating', () => {
+    const game = new GameInstance({ targetSize, keyMap, training: true })
+    /* 6 px/tick over 600 ticks covers 3600 px total, far more than minMoveDistance
+     * per window, so the anchor resets repeatedly and the timer never overflows. */
+    game.ship.d = { x: 6, y: 0, r: 0 }
+    for (let i = 0; i < 11 * 60 && game.status === 'running'; i++) {
+      game.asteroids = []
+      game.step([])
+    }
+    expect(game.status).toBe('running')
+  })
+
+  it('does not kill a stationary ship in play mode', () => {
+    const game = new GameInstance({ targetSize, keyMap, training: false })
+    for (let i = 0; i < 11 * 60 && game.status === 'running'; i++) {
+      game.asteroids = []
+      game.step([])
+    }
+    expect(game.status).toBe('running')
+  })
+})
+
 describe('GameInstance seeding', () => {
   const layout = (seed: number) => {
     const rng = new Rng(seed)
