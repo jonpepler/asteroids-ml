@@ -1,4 +1,3 @@
-import ELK, { type ELK as ElkInstance, type ElkNode } from 'elkjs/lib/elk.bundled.js'
 import { isEmpty } from 'lodash'
 import { type Genome, type GenomeJSON, Neat } from '../../lib/neat'
 import { getDefault } from '../defaults'
@@ -74,8 +73,9 @@ const inputs = 33
 const outputs = 4
 const populationSize = 200
 
-// Side length (diagram units) each neuron occupies in the layout. The renderer
-// draws nodes to match, so the ELK spacing reflects what is actually on screen.
+/* Side length (diagram units) each neuron occupies in the layout. The renderer
+   draws nodes to match, and the radial layout uses this as the base unit for
+   computing ring radii so nodes never overlap. */
 export const BRAIN_NODE_SIZE = 46
 
 /*
@@ -92,18 +92,15 @@ export const BRAIN_STORE_KEY = 'brain_data_v4'
 class Runner {
   neat: Neat
   storeKey = BRAIN_STORE_KEY
-  elk: ElkInstance
   history: GenStat[] = []
   best?: BestRecord
   private lastSaveAt = 0
-  // Persisting the whole current generation is expensive, so throttle it during
-  // fast headless training; generation boundaries force a save (see Trainer).
+  /* Persisting the whole current generation is expensive, so throttle it during
+     fast headless training; generation boundaries force a save (see Trainer). */
   saveIntervalMs = 1500
 
   constructor() {
     this.neat = new Neat({ inputs, outputs, populationSize })
-    // Run ELK in-thread for the brain-diagram layout.
-    this.elk = new ELK()
   }
 
   async init() {
@@ -164,11 +161,11 @@ class Runner {
   async buildGraph(brain: Genome): Promise<BrainGraph | []> {
     if (!brain || isEmpty(brain.nodes)) return []
 
-    const nodeStr = (id: number) => `n${id}`
-    const edgeStr = (i: number) => `e${i}`
+    const size = BRAIN_NODE_SIZE
+    const WHISKERS = 16
 
-    // Count enabled connections per node (both directions) so the renderer can
-    // size nodes by how wired-in they are and dim ones that are cut off.
+    /* Count enabled connections per node (in + out). Drives the node's drawn
+       size and flags isolated nodes the network no longer uses. */
     const degree = new Map<number, number>()
     for (const c of brain.connections) {
       if (!c.enabled) continue
@@ -176,41 +173,95 @@ class Runner {
       degree.set(c.to, (degree.get(c.to) ?? 0) + 1)
     }
 
-    const graph = {
-      id: 'root',
-      layoutOptions: {
-        'elk.algorithm': 'layered',
-        'elk.direction': 'RIGHT',
-        'elk.padding': '[top=8,left=8,bottom=8,right=8]',
-        // Lay the nodes out at the size they are actually drawn, with generous
-        // gaps, so they no longer pile on top of each other. (They were sized at
-        // 1px here but rendered far larger, which is why the diagram bunched up.)
-        'elk.spacing.componentComponent': '40',
-        'elk.spacing.nodeNode': '26',
-        'elk.layered.spacing.nodeNodeBetweenLayers': '110',
-        'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
-        // Keep the inputs/outputs in their natural id order top-to-bottom.
-        'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
-        'elk.edgeRouting': 'SPLINES'
-      },
-      children: brain.nodes.map((n) => ({
-        id: nodeStr(n.id),
-        width: BRAIN_NODE_SIZE,
-        height: BRAIN_NODE_SIZE,
-        type: n.type,
-        connections: degree.get(n.id) ?? 0
-      })),
-      edges: brain.connections
-        .filter((c) => c.enabled)
-        .map((e, i) => ({
-          id: edgeStr(i),
-          sources: [nodeStr(e.from)],
-          targets: [nodeStr(e.to)],
-          weight: e.weight
-        }))
+    /* Radii are tuned so 16 nodes fit each ring without touching.
+       distanceRadius is the outermost ring (long-range whiskers).
+       closingRadius nests inside it (closing-rate whiskers).
+       hiddenRadius and outputRadius are the two innermost rings.
+       stagger offsets the closing-rate ring by half a spoke (11.25 deg)
+       so each closing-rate node sits between its two distance neighbours. */
+    const distanceRadius = 4.2 * size
+    const closingRadius = 2.7 * size
+    const hiddenRadius = 1.7 * size
+    const outputRadius = 0.85 * size
+    const stagger = 11.25
+
+    /* 0 degrees = straight up, increasing clockwise. This matches compass
+       bearings, which is how the whisker angles are defined in the game. */
+    const onCircle = (deg: number, radius: number): { x: number; y: number } => {
+      const a = (deg * Math.PI) / 180
+      return { x: Math.sin(a) * radius, y: -Math.cos(a) * radius }
     }
 
-    return (await this.elk.layout(graph as unknown as ElkNode)) as unknown as BrainGraph
+    /* Whisker bearing: long-range sensors (ids 0-7) every 45 deg from 0;
+       short-range sensors (ids 8-15) every 45 deg offset by 22.5. */
+    const whiskerBearing = (w: number): number => (w < 8 ? 45 * w : 22.5 + 45 * (w - 8))
+
+    const outputIds = brain.nodes.filter((n) => n.type === 'output').map((n) => n.id)
+    const hiddenIds = brain.nodes.filter((n) => n.type === 'hidden').map((n) => n.id)
+
+    /* Ammo sensor sits just above the distance ring, centred horizontally. */
+    const ammoCenter = { x: 0, y: -(distanceRadius + 2 * size) }
+
+    const centerOf = (n: { id: number; type?: string }): { x: number; y: number } => {
+      if (n.type === 'input') {
+        if (n.id < WHISKERS) return onCircle(whiskerBearing(n.id), distanceRadius)
+        if (n.id < WHISKERS * 2)
+          return onCircle(whiskerBearing(n.id - WHISKERS) + stagger, closingRadius)
+        return ammoCenter
+      }
+      if (n.type === 'output') {
+        const i = outputIds.indexOf(n.id)
+        return onCircle((360 / Math.max(1, outputIds.length)) * i, outputRadius)
+      }
+      const i = hiddenIds.indexOf(n.id)
+      return onCircle((360 / Math.max(1, hiddenIds.length)) * i + 15, hiddenRadius)
+    }
+
+    const centers = new Map<number, { x: number; y: number }>()
+    for (const n of brain.nodes) centers.set(n.id, centerOf(n))
+
+    /* Normalise so the top-left of the bounding box (including node size) is (0,0). */
+    let minX = Number.POSITIVE_INFINITY
+    let minY = Number.POSITIVE_INFINITY
+    let maxX = Number.NEGATIVE_INFINITY
+    let maxY = Number.NEGATIVE_INFINITY
+    for (const c of centers.values()) {
+      minX = Math.min(minX, c.x - size / 2)
+      minY = Math.min(minY, c.y - size / 2)
+      maxX = Math.max(maxX, c.x + size / 2)
+      maxY = Math.max(maxY, c.y + size / 2)
+    }
+    const shift = (c: { x: number; y: number }): { x: number; y: number } => ({
+      x: c.x - minX,
+      y: c.y - minY
+    })
+
+    const children: BrainGraphNode[] = brain.nodes.map((n) => {
+      const c = shift(centers.get(n.id) as { x: number; y: number })
+      return {
+        id: `n${n.id}`,
+        x: c.x - size / 2,
+        y: c.y - size / 2,
+        width: size,
+        height: size,
+        type: n.type as BrainGraphNode['type'],
+        connections: degree.get(n.id) ?? 0
+      }
+    })
+
+    const edges: BrainGraphEdge[] = brain.connections
+      .filter((c) => c.enabled)
+      .map((e) => {
+        const from = shift(centers.get(e.from) as { x: number; y: number })
+        const to = shift(centers.get(e.to) as { x: number; y: number })
+        return {
+          weight: e.weight,
+          sources: [`n${e.from}`],
+          sections: [{ startPoint: from, endPoint: to }]
+        }
+      })
+
+    return { width: maxX - minX, height: maxY - minY, children, edges }
   }
 
   mapOutputToKeys(output: number[]): number[] {
