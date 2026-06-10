@@ -238,7 +238,6 @@ const Asteroids = (props: AsteroidsProps) => {
     const margin = 26
     const titleH = 28
     const pad = 16
-    const radius = BRAIN_NODE_SIZE / 2
     const scale = Math.min(
       0.3,
       (targetSize.w * 0.5) / (brainGraph.width || 1),
@@ -296,7 +295,12 @@ const Asteroids = (props: AsteroidsProps) => {
      * brightened by activation. Hit-test the cursor here (cheap, we are already
      * iterating) and remember the node under it for a tooltip drawn afterwards.
      */
-    let hoveredId = -1
+    // Size each node by how many connections it carries, relative to the
+    // busiest node, so heavily-wired neurons read as hubs. Capped at the layout
+    // size so nodes never grow into each other.
+    const maxDegree = brainGraph.children.reduce((m, c) => Math.max(m, c.connections), 0)
+
+    let hovered: { id: number; connections: number } | null = null
     p5.ellipseMode(p5.CENTER)
     for (const child of brainGraph.children) {
       const id = nodeId(child.id)
@@ -304,36 +308,64 @@ const Asteroids = (props: AsteroidsProps) => {
       const cx = child.x + child.width / 2
       const cy = child.y + child.height / 2
       const [r, g, b] = nodeColour(child.type)
+      const connected = child.connections > 0
+      const norm = maxDegree > 0 ? child.connections / maxDegree : 0
+      const diameter = BRAIN_NODE_SIZE * (0.45 + 0.55 * norm)
+      const nodeRadius = diameter / 2
 
       if (mouseX >= panelX && mouseY >= panelY) {
         const dx = mouseX - (originX + cx * scale)
         const dy = mouseY - (originY + cy * scale)
-        if (dx * dx + dy * dy <= (radius * scale + 4) ** 2) hoveredId = id
+        if (dx * dx + dy * dy <= (nodeRadius * scale + 4) ** 2) {
+          hovered = { id, connections: child.connections }
+        }
       }
 
-      if (level > 0.05) {
+      if (connected && level > 0.05) {
         p5.noStroke()
         p5.fill(r, g, b, 40 + level * 90)
-        p5.circle(cx, cy, BRAIN_NODE_SIZE * (1.4 + level * 0.8))
+        p5.circle(cx, cy, diameter * (1.4 + level * 0.8))
       }
-      const isHovered = id === hoveredId
+      const isHovered = id === hovered?.id
       p5.strokeWeight(isHovered ? 5 : 3)
       if (isHovered) p5.stroke(255)
       else p5.stroke(18, 20, 28)
-      const dim = 0.4 + 0.6 * level
-      p5.fill(r * dim, g * dim, b * dim)
-      p5.circle(cx, cy, BRAIN_NODE_SIZE)
+      // Cut-off nodes are drawn as a dim grey husk; wired nodes keep their type
+      // colour, brightened by activation.
+      if (connected) {
+        const dim = 0.4 + 0.6 * level
+        p5.fill(r * dim, g * dim, b * dim)
+      } else {
+        p5.fill(64, 68, 78)
+      }
+      p5.circle(cx, cy, diameter)
     }
     p5.pop()
 
-    if (hoveredId >= 0) drawNodeTooltip(p5, hoveredId, activations.get(hoveredId), mouseX, mouseY)
+    if (hovered) {
+      drawNodeTooltip(
+        p5,
+        hovered.id,
+        activations.get(hovered.id),
+        hovered.connections,
+        mouseX,
+        mouseY
+      )
+    }
   }
 
   // A small label near the cursor naming the hovered neuron and its live value.
-  const drawNodeTooltip = (p5: P5, id: number, value: number | undefined, x: number, y: number) => {
-    const { name, detail } = describeNode(id)
+  const drawNodeTooltip = (
+    p5: P5,
+    id: number,
+    value: number | undefined,
+    connections: number,
+    x: number,
+    y: number
+  ) => {
+    const { kind, name, detail } = describeNode(id)
     const boxW = 268
-    const boxH = 78
+    const boxH = 96
     // Flip the box to whichever side keeps it on screen.
     const bx = x + boxW + 24 > targetSize.w ? x - boxW - 14 : x + 14
     const by = Math.min(y + 14, targetSize.h - boxH - 10)
@@ -346,12 +378,34 @@ const Asteroids = (props: AsteroidsProps) => {
     p5.textAlign(p5.LEFT, p5.TOP)
     p5.textSize(15)
     p5.text(name, bx + 12, by + 10)
-    p5.fill(255, 210, 90)
+
+    /*
+     * Three decimals so tiny sigmoid outputs do not all read as 0.00. Outputs
+     * only drive the ship once they cross the 0.5 action threshold (see
+     * mapOutputToKeys), so flag whether this one is actually firing.
+     */
     p5.textSize(12)
-    const reading = value === undefined ? 'idle' : value.toFixed(2)
-    p5.text(`activation ${reading}`, bx + 12, by + 30)
+    p5.fill(255, 210, 90)
+    const reading = value === undefined ? '--' : value.toFixed(3)
+    const label = `activation ${reading}`
+    p5.text(label, bx + 12, by + 30)
+    if (kind === 'output' && value !== undefined) {
+      const firing = value >= 0.5
+      if (firing) p5.fill(96, 232, 152)
+      else p5.fill(120, 130, 150)
+      p5.text(firing ? 'firing' : 'idle', bx + 12 + p5.textWidth(label) + 12, by + 30)
+    }
+
+    p5.fill(150, 160, 180)
+    const plural = connections === 1 ? 'connection' : 'connections'
+    p5.text(
+      connections === 0 ? 'no connections (cut off)' : `${connections} ${plural}`,
+      bx + 12,
+      by + 48
+    )
+
     p5.fill(170, 180, 200)
-    p5.text(detail, bx + 12, by + 46, boxW - 24, boxH - 50)
+    p5.text(detail, bx + 12, by + 66, boxW - 24, boxH - 70)
     p5.pop()
   }
 

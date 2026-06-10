@@ -39,6 +39,9 @@ export interface BrainGraphNode {
   width: number
   height: number
   type?: 'input' | 'output' | 'hidden'
+  // Number of enabled connections touching this node (in + out). Drives the
+  // node's drawn size, and flags isolated nodes the network no longer uses.
+  connections: number
 }
 
 export interface BrainGraphEdgeSection {
@@ -148,6 +151,16 @@ class Runner {
 
     const nodeStr = (id: number) => `n${id}`
     const edgeStr = (i: number) => `e${i}`
+
+    // Count enabled connections per node (both directions) so the renderer can
+    // size nodes by how wired-in they are and dim ones that are cut off.
+    const degree = new Map<number, number>()
+    for (const c of brain.connections) {
+      if (!c.enabled) continue
+      degree.set(c.from, (degree.get(c.from) ?? 0) + 1)
+      degree.set(c.to, (degree.get(c.to) ?? 0) + 1)
+    }
+
     const graph = {
       id: 'root',
       layoutOptions: {
@@ -169,7 +182,8 @@ class Runner {
         id: nodeStr(n.id),
         width: BRAIN_NODE_SIZE,
         height: BRAIN_NODE_SIZE,
-        type: n.type
+        type: n.type,
+        connections: degree.get(n.id) ?? 0
       })),
       edges: brain.connections
         .filter((c) => c.enabled)
