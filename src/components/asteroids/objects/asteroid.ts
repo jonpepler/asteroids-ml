@@ -64,8 +64,10 @@ class Asteroid extends AstroObject {
     const newAsteroid = (delta: Vector) =>
       new Asteroid(this.x, this.y).withSize(newSize).withRandomShape(random).withDelta(delta)
 
-    // keep one child on the same delta, and send the other two at 45 degree angles
-    // slightly increase the rotation speed
+    /*
+     * Arcade style: the rock splits into two children sent off at +/-45 degrees.
+     * Slightly increase the rotation speed on each child.
+     */
     const newDelta = (x: number, y: number, r: number, a: number): Vector => ({
       x: x * Math.cos(asRadians(a)) + y * -Math.sin(asRadians(a)),
       y: x * Math.sin(asRadians(a)) + y * Math.cos(asRadians(a)),
@@ -73,7 +75,6 @@ class Asteroid extends AstroObject {
     })
     return [
       newAsteroid(newDelta(this.d.x || 0, this.d.y || 0, this.d.r || 0, 45)),
-      newAsteroid(newDelta(this.d.x || 0, this.d.y || 0, this.d.r || 0, 0)),
       newAsteroid(newDelta(this.d.x || 0, this.d.y || 0, this.d.r || 0, -45))
     ]
   }
