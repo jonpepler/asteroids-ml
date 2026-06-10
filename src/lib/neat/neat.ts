@@ -22,7 +22,13 @@ export const defaultConfig: Omit<NeatConfig, 'inputs' | 'outputs'> = {
   compatibilityThreshold: 3,
   targetSpecies: 12,
   compatibilityThresholdStep: 0.3,
-  minCompatibilityThreshold: 0.5,
+  /*
+   * Low floor: weight-only differences in a converged population are small
+   * (weightCoeff 0.4 over a [-1, 1] range), so the threshold must be able to
+   * drop well below 1 to split the pack back into species. It self-regulates
+   * upward whenever the count overshoots targetSpecies, so a low floor is safe.
+   */
+  minCompatibilityThreshold: 0.1,
   crossoverRate: 0.75,
   survivalThreshold: 0.3,
   speciesElitismMin: 5,
