@@ -143,6 +143,27 @@ describe('GameInstance is endless', () => {
   })
 })
 
+describe('GameInstance asteroid removal', () => {
+  it('removes exactly the destroyed asteroids when several die in one tick', () => {
+    const game = new GameInstance({ targetSize, keyMap, training: false })
+    const [a0, a1, a2] = game.asteroids
+    // Park three in a far corner, away from the ship, and destroy two of them.
+    for (const [i, a] of [a0, a1, a2].entries()) {
+      a.x = 5 + i * 5
+      a.y = 5
+    }
+    game.asteroids = [a0, a1, a2]
+    a0.old = true
+    a1.old = true // two deaths at once: the old splice dropped a2 by mistake
+
+    game.step([])
+
+    expect(game.asteroids).not.toContain(a0)
+    expect(game.asteroids).not.toContain(a1)
+    expect(game.asteroids).toContain(a2) // the survivor is the one left alive
+  })
+})
+
 describe('GameInstance seeding', () => {
   const layout = (seed: number) => {
     const rng = new Rng(seed)

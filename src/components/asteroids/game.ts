@@ -221,16 +221,17 @@ export class GameInstance {
 
   private updateAsteroids() {
     const newAsteroids: Asteroid[] = []
-    const asteroidsToSplice: number[] = []
-    this.asteroids.forEach((obj, i) => {
+    this.asteroids.forEach((obj) => {
       if (obj.old) {
         newAsteroids.push(...obj.spawnChildren(this.random))
-        asteroidsToSplice.push(i)
         this.onScore?.(asteroidKillScore)
         this.score += asteroidKillScore
       }
     })
-    asteroidsToSplice.forEach((index) => this.asteroids.splice(index, 1))
+    // Drop the destroyed ones in a single pass. Splicing collected indices one
+    // at a time shifted the array under itself and removed the wrong asteroids
+    // whenever more than one died on the same tick.
+    this.asteroids = this.asteroids.filter((obj) => !obj.old)
     this.asteroids.push(...newAsteroids)
 
     // Keep a big asteroid in play: once down to one or zero, send in a fresh one.
