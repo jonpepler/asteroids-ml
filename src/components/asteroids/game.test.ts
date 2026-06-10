@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { Rng } from '../../lib/neat'
 import { getDefault } from '../../services/defaults'
 import { GameInstance } from './game'
+import Ship from './objects/ship'
 import { bonusAsteroidsForScore } from './util/asteroid-generator'
 
 const targetSize = getDefault('targetSize')
@@ -57,6 +58,48 @@ describe('GameInstance survival reward', () => {
     // flat 0.1, and tapers off as the episode runs on.
     expect(survival[0]).toBeCloseTo(10 / 60, 4)
     expect(survival[0]).toBeGreaterThan(survival[survival.length - 1])
+  })
+})
+
+describe('GameInstance miss penalty', () => {
+  it('flags a bullet as having hit only once it strikes something', () => {
+    const ship = new Ship(0, 0)
+    const bullet = ship.shoot()
+    expect(bullet.hitTarget).toBe(false)
+    bullet.hit()
+    expect(bullet.hitTarget).toBe(true)
+    expect(bullet.old).toBe(true)
+  })
+
+  it('charges a negative penalty for a bullet that ages out without hitting', () => {
+    const onScore = vi.fn()
+    const game = new GameInstance({ targetSize, keyMap, training: true, onScore })
+    // Controlled scenario: no asteroids to strike, and a single spent bullet
+    // parked away from the ship so it cannot register a hit this tick.
+    game.asteroids = []
+    const bullet = game.ship.shoot()
+    bullet.x = 5
+    bullet.y = 5
+    bullet.old = true
+    game.bullets = [bullet]
+    game.step([])
+    const amounts = onScore.mock.calls.map((c) => c[0])
+    // One miss costs missPenalty (1); crucially this is a cost, not a reward.
+    expect(amounts).toContain(-1)
+  })
+
+  it('does not penalise a bullet that ages out after hitting', () => {
+    const onScore = vi.fn()
+    const game = new GameInstance({ targetSize, keyMap, training: true, onScore })
+    game.asteroids = []
+    const bullet = game.ship.shoot()
+    bullet.x = 5
+    bullet.y = 5
+    bullet.hit() // marks it hit (and old)
+    game.bullets = [bullet]
+    game.step([])
+    const amounts = onScore.mock.calls.map((c) => c[0])
+    expect(amounts).not.toContain(-1)
   })
 })
 

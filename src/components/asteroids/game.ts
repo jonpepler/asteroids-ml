@@ -66,6 +66,16 @@ const fireLimiter = 3
 const firePenalty = 0.15
 
 /*
+ * A larger training-only cost charged when a bullet ages out without ever
+ * hitting anything, on top of firePenalty. This rewards accuracy: an aimed shot
+ * pays only the small fire cost and (on a kill) earns asteroidKillScore, while a
+ * blind miss also forfeits missPenalty. The breakeven hit rate for firing at a
+ * target stays around 10%, so even modestly aimed fire is net positive and the
+ * degenerate "never fire" optimum is avoided.
+ */
+const missPenalty = 1
+
+/*
  * The game is endless (no win): a fresh full-size asteroid is spawned whenever
  * the field is down to one or zero "big" ones, so there is always something
  * substantial to engage. Children from splitting fall below this size.
@@ -154,8 +164,14 @@ export class GameInstance {
     this.checkCollisions(this.asteroids, this.bullets)
     this.checkCollisions([this.ship], this.bullets)
     this.checkCollisions([this.ship], this.asteroids)
+    /*
+     * Charge the miss penalty for any bullet that aged out this tick without
+     * hitting anything. Old bullets are filtered out every tick just below, so
+     * each is only ever counted once.
+     */
     if (this.training) {
-      this.onScore?.(this.bullets.filter((obj) => obj.old && !obj.hitTarget).length)
+      const missed = this.bullets.filter((obj) => obj.old && !obj.hitTarget).length
+      if (missed > 0) this.onScore?.(-missPenalty * missed)
     }
     this.bullets = this.bullets.filter((obj) => !obj.old)
     this.updateAsteroids()
