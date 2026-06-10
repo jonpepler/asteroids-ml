@@ -298,34 +298,16 @@ const Asteroids = (props: AsteroidsProps) => {
     p5.scale(scale)
 
     /*
-     * Edges: thickness tracks the connection weight, hue tracks its sign
-     * (teal excitatory, red inhibitory), and brightness tracks the live signal
-     * leaving the source node so active pathways glow.
-     */
-    for (const edge of brainGraph.edges) {
-      const signal = intensity(edge.sources?.[0] ? nodeId(edge.sources[0]) : -1)
-      const alpha = 30 + signal * 205
-      if (edge.weight >= 0) p5.stroke(70, 200, 180, alpha)
-      else p5.stroke(235, 110, 95, alpha)
-      p5.strokeWeight(0.8 + Math.min(Math.abs(edge.weight), 4) * 0.7)
-      for (const section of edge.sections) {
-        p5.line(section.startPoint.x, section.startPoint.y, section.endPoint.x, section.endPoint.y)
-      }
-    }
-
-    /*
      * Nodes: a faint glow when firing, a filled disc tinted by type and
-     * brightened by activation. Hit-test the cursor here (cheap, we are already
-     * iterating) and remember the node under it for a tooltip drawn afterwards.
+     * brightened by activation. Size each node by how many connections it
+     * carries, relative to the busiest node, so heavily-wired neurons read as
+     * hubs. Capped at the layout size so nodes never grow into each other.
      */
-    // Size each node by how many connections it carries, relative to the
-    // busiest node, so heavily-wired neurons read as hubs. Capped at the layout
-    // size so nodes never grow into each other.
     const maxDegree = brainGraph.children.reduce((m, c) => Math.max(m, c.connections), 0)
 
-    let hovered: { id: number; connections: number } | null = null
-    p5.ellipseMode(p5.CENTER)
-    for (const child of brainGraph.children) {
+    /* Build a flat array of pre-computed node geometry so hover detection and
+     * drawing can run as separate passes. */
+    const placed = brainGraph.children.map((child) => {
       const id = nodeId(child.id)
       const level = intensity(id)
       const cx = child.x + child.width / 2
@@ -334,16 +316,76 @@ const Asteroids = (props: AsteroidsProps) => {
       const connected = child.connections > 0
       const norm = maxDegree > 0 ? child.connections / maxDegree : 0
       const diameter = BRAIN_NODE_SIZE * (0.45 + 0.55 * norm)
-      const nodeRadius = diameter / 2
+      const radius = diameter / 2
+      return {
+        id,
+        cx,
+        cy,
+        diameter,
+        radius,
+        level,
+        connected,
+        r,
+        g,
+        b,
+        connections: child.connections
+      }
+    })
 
+    /* Hover detection: scan placed nodes so the result is known before edges are
+     * drawn, allowing connected edges to be highlighted or dimmed accordingly. */
+    let hovered: { id: number; connections: number } | null = null
+    for (const node of placed) {
       if (mouseX >= panelX && mouseY >= panelY) {
-        const dx = mouseX - (originX + cx * scale)
-        const dy = mouseY - (originY + cy * scale)
-        if (dx * dx + dy * dy <= (nodeRadius * scale + 4) ** 2) {
-          hovered = { id, connections: child.connections }
+        const dx = mouseX - (originX + node.cx * scale)
+        const dy = mouseY - (originY + node.cy * scale)
+        if (dx * dx + dy * dy <= (node.radius * scale + 4) ** 2) {
+          hovered = { id: node.id, connections: node.connections }
         }
       }
+    }
 
+    /*
+     * Edges: thickness tracks the connection weight, hue tracks its sign
+     * (teal excitatory, red inhibitory), and brightness tracks the live signal
+     * leaving the source node so active pathways glow. When a node is hovered,
+     * unrelated edges dim and the hovered node's edges are drawn on top, bright
+     * and slightly thicker, so you can trace what it connects to.
+     */
+    const baseWeight = (w: number) => 0.8 + Math.min(Math.abs(w), 4) * 0.7
+    const drawEdge = (
+      edge: (typeof brainGraph.edges)[number],
+      alpha: number,
+      weightMul: number
+    ) => {
+      const signal = intensity(edge.sources?.[0] ? nodeId(edge.sources[0]) : -1)
+      const a = hovered ? alpha : 30 + signal * 205
+      if (edge.weight >= 0) p5.stroke(70, 200, 180, a)
+      else p5.stroke(235, 110, 95, a)
+      p5.strokeWeight(baseWeight(edge.weight) * weightMul)
+      for (const section of edge.sections) {
+        p5.line(section.startPoint.x, section.startPoint.y, section.endPoint.x, section.endPoint.y)
+      }
+    }
+    const touchesHovered = (edge: (typeof brainGraph.edges)[number]) =>
+      hovered != null &&
+      ((edge.sources?.[0] && nodeId(edge.sources[0]) === hovered.id) ||
+        (edge.target && nodeId(edge.target) === hovered.id))
+    /* Base pass: when nothing is hovered, use normal signal alpha; when something
+     * is hovered, dim all unrelated edges to a near-invisible ghost. */
+    for (const edge of brainGraph.edges) {
+      if (!hovered) drawEdge(edge, 0, 1)
+      else if (!touchesHovered(edge)) drawEdge(edge, 16, 1)
+    }
+    /* Highlight pass: the hovered node's own edges, drawn on top and brighter. */
+    if (hovered) {
+      for (const edge of brainGraph.edges) if (touchesHovered(edge)) drawEdge(edge, 255, 1.7)
+    }
+
+    /* Node drawing: glow halo, hover ring, then filled disc. */
+    p5.ellipseMode(p5.CENTER)
+    for (const node of placed) {
+      const { id, cx, cy, diameter, level, connected, r, g, b } = node
       if (connected && level > 0.05) {
         p5.noStroke()
         p5.fill(r, g, b, 40 + level * 90)
@@ -353,8 +395,8 @@ const Asteroids = (props: AsteroidsProps) => {
       p5.strokeWeight(isHovered ? 5 : 3)
       if (isHovered) p5.stroke(255)
       else p5.stroke(18, 20, 28)
-      // Cut-off nodes are drawn as a dim grey husk; wired nodes keep their type
-      // colour, brightened by activation.
+      /* Cut-off nodes are drawn as a dim grey husk; wired nodes keep their type
+       * colour, brightened by activation. */
       if (connected) {
         const dim = 0.4 + 0.6 * level
         p5.fill(r * dim, g * dim, b * dim)

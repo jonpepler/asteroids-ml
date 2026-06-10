@@ -53,8 +53,10 @@ export interface BrainGraphEdgeSection {
 
 export interface BrainGraphEdge {
   weight: number
-  // Source node ids (`n${nodeId}`); the first drives the edge's live brightness.
+  /* Source node ids (`n${nodeId}`); the first drives the edge's live brightness. */
   sources?: string[]
+  /* Target node id (`n${id}`). */
+  target?: string
   sections: BrainGraphEdgeSection[]
 }
 
@@ -257,6 +259,7 @@ class Runner {
         return {
           weight: e.weight,
           sources: [`n${e.from}`],
+          target: `n${e.to}`,
           sections: [{ startPoint: from, endPoint: to }]
         }
       })
