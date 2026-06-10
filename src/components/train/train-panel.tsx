@@ -14,6 +14,9 @@ interface TrainPanelProps {
 const TrainPanel = ({ history, speed, onSpeedChange }: TrainPanelProps) => {
   const latest = history[history.length - 1]
   const allTimeBest = history.reduce((max, h) => Math.max(max, h.best), 0)
+  const species = latest?.species ?? 0
+  const bestEntry = history.find((h) => h.best === allTimeBest)
+  const sinceBest = latest && bestEntry ? latest.gen - bestEntry.gen : 0
 
   return (
     <aside className="train-panel">
@@ -37,6 +40,14 @@ const TrainPanel = ({ history, speed, onSpeedChange }: TrainPanelProps) => {
         <div>
           <dt>avg (gen)</dt>
           <dd>{latest ? Math.round(latest.avg) : 0}</dd>
+        </div>
+        <div>
+          <dt>species</dt>
+          <dd>{species}</dd>
+        </div>
+        <div>
+          <dt>since best</dt>
+          <dd>{sinceBest}</dd>
         </div>
       </dl>
 

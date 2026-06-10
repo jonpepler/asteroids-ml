@@ -40,4 +40,18 @@ describe('TrainPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: '10x' }))
     expect(onSpeedChange).toHaveBeenCalledWith(10)
   })
+
+  it('shows species count and generations since all-time best', () => {
+    /* All-time best (500) is at gen 1; latest is gen 9 with 3 species.
+       "since best" should be 9 - 1 = 8. */
+    const stalled: GenStat[] = [
+      { gen: 1, best: 500, avg: 100, min: 0, species: 8 },
+      { gen: 9, best: 420, avg: 110, min: 0, species: 3 }
+    ]
+    renderPanel(<TrainPanel history={stalled} speed={1} onSpeedChange={() => {}} />)
+    expect(screen.getByText('species')).toBeInTheDocument()
+    expect(screen.getByText('since best')).toBeInTheDocument()
+    expect(screen.getByText('3')).toBeInTheDocument()
+    expect(screen.getByText('8')).toBeInTheDocument()
+  })
 })

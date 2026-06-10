@@ -9,13 +9,16 @@ interface BrainHead {
   generation: number
 }
 
-// Compact per-generation summary, kept for the whole run so a fitness chart can
-// show progress over time without storing every genome of every generation.
+/* Compact per-generation summary, kept for the whole run so a fitness chart can
+   show progress over time without storing every genome of every generation. */
 export interface GenStat {
   gen: number
   best: number
   avg: number
   min: number
+  /* Number of active species at the end of this generation. Optional so that
+     older saved histories (pre-species tracking) remain valid. */
+  species?: number
 }
 
 export interface BestRecord {
@@ -113,7 +116,13 @@ class Runner {
     const best = Math.max(...scores)
     const min = Math.min(...scores)
     const avg = scores.reduce((acc, score) => acc + score, 0) / scores.length
-    this.history.push({ gen: this.neat.generation, best, avg, min })
+    this.history.push({
+      gen: this.neat.generation,
+      best,
+      avg,
+      min,
+      species: this.neat.species.length
+    })
 
     if (!this.best || best > this.best.score) {
       const bestGenome = this.neat.population[scores.indexOf(best)]
