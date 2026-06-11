@@ -1,4 +1,5 @@
 import { isEmpty } from 'lodash'
+import { trainingRulesVersion } from '../../components/asteroids/game'
 import { type Genome, type GenomeJSON, Neat } from '../../lib/neat'
 import { getDefault } from '../defaults'
 import { get, set } from '../storage'
@@ -31,6 +32,9 @@ interface StoredBrain {
   currentGeneration?: GenomeJSON[]
   best?: BestRecord
   history?: GenStat[]
+  /* The trainingRulesVersion the scores were earned under. Optional so runs
+     saved before versioning existed load as "stale" and get their stats reset. */
+  rulesVersion?: number
 }
 
 export interface BrainGraphNode {
@@ -109,8 +113,16 @@ class Runner {
     const stored = (await get(this.storeKey)) as StoredBrain | undefined
     if (stored?.currentGeneration?.length) {
       this.neat.loadPopulation(stored.currentGeneration, stored.head.generation)
-      this.history = stored.history ?? []
-      this.best = stored.best
+      /*
+       * Only restore the stats if they were earned under the current rules.
+       * After a balance change the population is still worth keeping, but a
+       * best record set under easier rules may sit above the new practical
+       * ceiling and freeze "best (all)" (and watch mode's champion) forever.
+       */
+      if (stored.rulesVersion === trainingRulesVersion) {
+        this.history = stored.history ?? []
+        this.best = stored.best
+      }
     }
   }
 
@@ -152,7 +164,8 @@ class Runner {
       head: { generation: this.neat.generation },
       currentGeneration: this.neat.population.map((genome) => genome.toJSON()),
       best: this.best,
-      history: this.history
+      history: this.history,
+      rulesVersion: trainingRulesVersion
     } satisfies StoredBrain)
   }
 

@@ -26,6 +26,17 @@ export interface Sense {
   value: number
 }
 
+/*
+ * Version of the game balance and training rules below (spawn rates, rewards,
+ * penalties, anti-camp, ...). Bump it whenever a change makes fitness scores
+ * incomparable with earlier runs. The runner keeps the evolved population
+ * across a bump (genomes stay valid) but resets the all-time best and the
+ * chart history, so a record set under easier rules can't freeze the
+ * "best (all)" stat forever. Input/output layout changes are different: those
+ * invalidate the genomes themselves and need a BRAIN_STORE_KEY bump instead.
+ */
+export const trainingRulesVersion = 1
+
 const asteroidKillScore = 10
 
 /*

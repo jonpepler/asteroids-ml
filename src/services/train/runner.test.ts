@@ -1,5 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { trainingRulesVersion } from '../../components/asteroids/game'
 import Runner from './runner'
+
+const { get, set } = vi.hoisted(() => ({ get: vi.fn(), set: vi.fn() }))
+vi.mock('../storage', () => ({ get, set }))
 
 describe('Runner.mapOutputToKeys', () => {
   const runner = new Runner()
@@ -43,6 +47,60 @@ describe('Runner.recordGenerationStats', () => {
     runner.neat.population[0].score = 10
     runner.recordGenerationStats()
     expect(runner.best?.score).toBe(30)
+  })
+})
+
+describe('Runner.init', () => {
+  beforeEach(() => {
+    get.mockReset()
+    set.mockReset()
+  })
+
+  const makeStored = (rulesVersion?: number) => {
+    const source = new Runner()
+    return {
+      head: { generation: 42 },
+      currentGeneration: source.neat.population.map((genome) => genome.toJSON()),
+      best: { json: source.neat.population[0].toJSON(), gen: 30, score: 2000 },
+      history: [{ gen: 41, best: 2000, avg: 400, min: 5 }],
+      rulesVersion
+    }
+  }
+
+  it('restores stats saved under the current rules', async () => {
+    get.mockResolvedValue(makeStored(trainingRulesVersion))
+    const runner = new Runner()
+    await runner.init()
+    expect(runner.neat.generation).toBe(42)
+    expect(runner.best?.score).toBe(2000)
+    expect(runner.history).toHaveLength(1)
+  })
+
+  it('keeps the population but resets stats from a different rules version', async () => {
+    get.mockResolvedValue(makeStored(trainingRulesVersion + 1))
+    const runner = new Runner()
+    await runner.init()
+    expect(runner.neat.generation).toBe(42)
+    expect(runner.best).toBeUndefined()
+    expect(runner.history).toHaveLength(0)
+  })
+
+  it('treats unversioned saves (pre rules-version) as stale stats', async () => {
+    get.mockResolvedValue(makeStored(undefined))
+    const runner = new Runner()
+    await runner.init()
+    expect(runner.neat.generation).toBe(42)
+    expect(runner.best).toBeUndefined()
+    expect(runner.history).toHaveLength(0)
+  })
+
+  it('stamps the current rules version on save', () => {
+    const runner = new Runner()
+    runner.saveCurrentGeneration(true)
+    expect(set).toHaveBeenCalledWith(
+      runner.storeKey,
+      expect.objectContaining({ rulesVersion: trainingRulesVersion })
+    )
   })
 })
 
